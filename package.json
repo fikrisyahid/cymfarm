@@ -1,0 +1,25 @@
+{
+  "name": "cymfarm-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root orchestrator & workspace wrapper for CymFarm Family Farm Management System",
+  "workspaces": [
+    "main"
+  ],
+  "scripts": {
+    "env:sync": "bun ops/sync-env.ts",
+    "dev": "bun ops/sync-env.ts && bun run --cwd main dev",
+    "build": "bun ops/sync-env.ts && bun run --cwd main build",
+    "start": "bun ops/sync-env.ts && bun run --cwd main start",
+    "lint": "bun run --cwd main lint",
+    "typecheck": "bun run --cwd main typecheck",
+    "add": "bun ops/pkg.ts add",
+    "remove": "bun ops/pkg.ts remove",
+    "update": "bun ops/pkg.ts update",
+    "db:generate": "bun ops/sync-env.ts && bun run --cwd main db:generate",
+    "db:migrate": "bun ops/sync-env.ts && bun run --cwd main db:migrate",
+    "db:push": "bun ops/sync-env.ts && bun run --cwd main db:push",
+    "db:studio": "bun ops/sync-env.ts && bun run --cwd main db:studio",
+    "ci": "bash ops/ci.sh"
+  }
+}

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+main/node_modules/
+
+# Next.js build outputs
+main/.next/
+main/out/
+main/build/
+
+# Environment variables (keep .env.example, ignore actual .env files)
+.env
+.env.*
+!.env.example
+main/.env*
+
+# Debug & Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel / Deployment
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+main/next-env.d.ts
+
+# PWA generated files (if applicable)
+main/public/sw.js
+main/public/sw.js.map
+main/public/workbox-*.js
+main/public/workbox-*.js.map
+
+# OS & Editor
+.DS_Store
+*.pem
+.idea/
+.vscode/
