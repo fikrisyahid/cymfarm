@@ -25,8 +25,13 @@ import {
   Scissors,
   Save,
   Sparkles,
+  Plus,
 } from "lucide-react";
-import { localDb, type LocalFarmModule } from "@/lib/offline-db";
+import {
+  localDb,
+  type LocalContainer,
+  type LocalFarmModule,
+} from "@/lib/offline-db";
 import type { LegoBlockType, FlowNodeData } from "@/db/schema";
 
 const LEGO_PRIMITIVES: Array<{
@@ -41,56 +46,56 @@ const LEGO_PRIMITIVES: Array<{
     type: "INIT_POPULATE",
     title: "1. Init / Populate",
     subtitle: "Masuk Bibit / Isi Kandang",
-    color: "bg-sky-950/90 text-sky-200",
-    borderColor: "border-sky-500",
+    color: "bg-sky-50 text-sky-950",
+    borderColor: "border-sky-600",
     icon: PlusCircle,
   },
   {
     type: "DAILY_ROUTINE",
     title: "2. Daily Routine",
     subtitle: "Kasih Makan / Siram (Auto-skip kosong)",
-    color: "bg-emerald-950/90 text-emerald-200",
-    borderColor: "border-emerald-500",
+    color: "bg-emerald-50 text-emerald-950",
+    borderColor: "border-emerald-600",
     icon: CalendarCheck,
   },
   {
     type: "RECURRING_YIELD",
     title: "3. Recurring Yield",
     subtitle: "Panen Telur / Petik Hasil Berulang",
-    color: "bg-amber-950/90 text-amber-200",
-    borderColor: "border-amber-500",
+    color: "bg-amber-50 text-amber-950",
+    borderColor: "border-amber-600",
     icon: Egg,
   },
   {
     type: "SORT_TRANSFER",
     title: "4. Sort / Transfer",
     subtitle: "Sortir Ukuran / Pindah Wadah",
-    color: "bg-lime-950/90 text-lime-200",
-    borderColor: "border-lime-500",
+    color: "bg-lime-50 text-lime-950",
+    borderColor: "border-lime-600",
     icon: ArrowLeftRight,
   },
   {
     type: "TIMER_QUARANTINE",
     title: "5. Timer / Quarantine",
     subtitle: "Puasa 3 Hari (Countdown 72h)",
-    color: "bg-orange-950/90 text-orange-200",
-    borderColor: "border-orange-500",
+    color: "bg-orange-50 text-orange-950",
+    borderColor: "border-orange-600",
     icon: Timer,
   },
   {
     type: "AUTO_RULE",
     title: "6. Auto-Rule Trigger",
     subtitle: "0 Telur > X Hari -> Alert Afkir",
-    color: "bg-purple-950/90 text-purple-200",
-    borderColor: "border-purple-500",
+    color: "bg-purple-50 text-purple-950",
+    borderColor: "border-purple-600",
     icon: AlertTriangle,
   },
   {
     type: "TERMINATE_HARVEST",
     title: "7. Terminate / Harvest",
     subtitle: "Potong / Panen Akhir -> Kosongkan Slot",
-    color: "bg-rose-950/90 text-rose-200",
-    borderColor: "border-rose-500",
+    color: "bg-rose-50 text-rose-950",
+    borderColor: "border-rose-600",
     icon: Scissors,
   },
 ];
@@ -102,43 +107,43 @@ function LegoBlockNode({ data }: { data: FlowNodeData }) {
 
   return (
     <div
-      className={`min-w-[220px] max-w-[250px] rounded-xl border-2 ${meta.borderColor} ${meta.color} p-3.5 shadow-xl backdrop-blur-md`}
+      className={`min-w-[230px] max-w-[260px] rounded-2xl border-2 ${meta.borderColor} ${meta.color} p-4 shadow-md`}
     >
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3 !w-3 !bg-white"
+        className="!h-3.5 !w-3.5 !bg-slate-900"
       />
       <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-black/30 p-2">
+        <div className="rounded-xl bg-white p-2 shadow-sm">
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider opacity-75">
+          <div className="text-[11px] font-black uppercase tracking-wider opacity-75">
             {data.blockType.replace("_", " ")}
           </div>
-          <div className="text-sm font-bold text-white">{data.label}</div>
+          <div className="text-base font-black text-slate-900">{data.label}</div>
         </div>
       </div>
       {data.description && (
-        <p className="mt-2 text-xs leading-relaxed opacity-85">
+        <p className="mt-2 text-xs font-bold leading-relaxed text-slate-700">
           {data.description}
         </p>
       )}
       {data.config?.timerHours && (
-        <div className="mt-2 inline-block rounded bg-black/40 px-2 py-0.5 text-[11px] font-medium text-orange-300">
+        <div className="mt-2 inline-block rounded-lg bg-white px-2.5 py-1 text-xs font-black text-orange-800 shadow-sm">
           ⏱️ Timer: {data.config.timerHours} Jam
         </div>
       )}
       {data.config?.zeroYieldThresholdDays && (
-        <div className="mt-2 inline-block rounded bg-black/40 px-2 py-0.5 text-[11px] font-medium text-purple-300">
+        <div className="mt-2 inline-block rounded-lg bg-white px-2.5 py-1 text-xs font-black text-purple-800 shadow-sm">
           ⚠️ Rule: 0 Hasil &ge; {data.config.zeroYieldThresholdDays} Hari
         </div>
       )}
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !bg-white"
+        className="!h-3.5 !w-3.5 !bg-slate-900"
       />
     </div>
   );
@@ -146,9 +151,13 @@ function LegoBlockNode({ data }: { data: FlowNodeData }) {
 
 interface StudioFlowBuilderProps {
   modules: LocalFarmModule[];
+  containers?: LocalContainer[];
 }
 
-export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
+export function StudioFlowBuilder({
+  modules,
+  containers = [],
+}: StudioFlowBuilderProps) {
   const [selectedModuleId, setSelectedModuleId] = useState<string>(
     modules[0]?.id || "mod-ayam-petelur"
   );
@@ -181,7 +190,7 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
       (activeModule?.flowGraph.edges || []).map((e) => ({
         ...e,
         animated: true,
-        style: { stroke: "#34d399", strokeWidth: 2 },
+        style: { stroke: "#047857", strokeWidth: 2.5 },
       })),
     [activeModule]
   );
@@ -190,7 +199,6 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
     useNodesState<Node<FlowNodeData>>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync nodes & edges when switching modules
   React.useEffect(() => {
     if (!activeModule) return;
     setNodes(
@@ -203,7 +211,7 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
       activeModule.flowGraph.edges.map((e) => ({
         ...e,
         animated: true,
-        style: { stroke: "#34d399", strokeWidth: 2 },
+        style: { stroke: "#047857", strokeWidth: 2.5 },
       }))
     );
   }, [activeModule, setNodes, setEdges]);
@@ -217,7 +225,7 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
           {
             ...params,
             animated: true,
-            style: { stroke: "#34d399", strokeWidth: 2 },
+            style: { stroke: "#047857", strokeWidth: 2.5 },
           },
           eds
         )
@@ -323,69 +331,89 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
     setShowNewModal(false);
   };
 
+  const cageSets = containers.filter((c) => c.containerType === "CAGE_SET");
+
+  const handleAddSlotToSet = async (cageSet: LocalContainer) => {
+    const existingSlots = containers.filter((c) => c.parentId === cageSet.id);
+    const nextOrder = existingSlots.length + 1;
+    const newSlotId = `${cageSet.id}-slot-${nextOrder}-${Date.now().toString().slice(-3)}`;
+    await localDb.containers.put({
+      id: newSlotId,
+      parentId: cageSet.id,
+      moduleId: cageSet.moduleId,
+      name: `Kandang Baru (${cageSet.code}-${nextOrder})`,
+      code: `${cageSet.code}-${nextOrder}`,
+      containerType: "CAGE_SLOT",
+      status: "VACANT",
+      sortOrder: nextOrder,
+    });
+    setSaveNotice(`+1 Slot Kandang ditambahkan ke ${cageSet.name} (Histori aman!)`);
+    setTimeout(() => setSaveNotice(null), 3000);
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Top Module Switcher & Create New Farm Module */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-sm font-black uppercase tracking-wider text-slate-700">
             Pilih Modul Flow:
           </span>
           {modules.map((m) => (
             <button
               key={m.id}
               onClick={() => setSelectedModuleId(m.id)}
-              className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+              className={`rounded-2xl border-2 px-4 py-2.5 text-sm font-black transition ${
                 m.id === selectedModuleId
-                  ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  ? "border-emerald-900 bg-emerald-700 text-white shadow"
+                  : "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200"
               }`}
             >
               {m.name}{" "}
-              <span className="ml-1 rounded bg-black/25 px-1.5 py-0.5 text-[10px]">
+              <span className="ml-1 rounded bg-black/15 px-1.5 py-0.5 text-[11px]">
                 {m.trackingMode}
               </span>
             </button>
           ))}
           <button
             onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-dashed border-emerald-500/60 bg-emerald-950/40 px-3.5 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-900/50"
+            className="flex items-center gap-1.5 rounded-2xl border-2 border-dashed border-emerald-700 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-900 hover:bg-emerald-100"
           >
-            <Sparkles className="h-3.5 w-3.5" /> + Buat Modul Farm Baru (Tanaman/Ternak)
+            <Sparkles className="h-4 w-4" /> + Buat Modul Farm Baru
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {saveNotice && (
-            <span className="rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300">
+            <span className="rounded-xl border border-emerald-600 bg-emerald-50 px-3.5 py-1.5 text-sm font-black text-emerald-900">
               {saveNotice}
             </span>
           )}
           <button
             onClick={handleSaveFlow}
-            className="flex items-center gap-1.5 rounded-xl bg-sky-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-sky-400"
+            className="flex items-center gap-2 rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow hover:bg-sky-800"
           >
-            <Save className="h-4 w-4" /> Simpan Rakitan Flow
+            <Save className="h-5 w-5" /> Simpan Rakitan Flow
           </button>
         </div>
       </div>
 
-      {/* Modal: Create New Farm Module (Plant/Livestock/Aquaculture) */}
+      {/* Modal: Create New Farm Module */}
       {showNewModal && (
         <form
           onSubmit={handleCreateNewModule}
-          className="rounded-2xl border border-emerald-500/40 bg-slate-900 p-5 shadow-2xl"
+          className="rounded-3xl border-2 border-emerald-700 bg-white p-6 shadow-xl"
         >
-          <h3 className="text-sm font-bold text-white">
+          <h3 className="text-xl font-black text-slate-900">
             Buat Modul Peternakan / Tanaman Baru (In-App Builder)
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
-            Tanpa koding ulang! Pilih jenis modul, lalu rakit flow-nya dengan 7 Blok Lego di bawah.
+          <p className="mt-1 text-sm font-bold text-slate-600">
+            Pilih jenis modul, lalu rakit alur kerjanya dengan 7 Blok Lego di bawah.
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300">
-                Nama Modul (Contoh: Cabai Rawit / Bebek / Maggot)
+              <label className="block text-sm font-black text-slate-900">
+                Nama Modul (Contoh: Cabai / Bebek / Maggot)
               </label>
               <input
                 type="text"
@@ -393,11 +421,11 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
                 value={newModName}
                 onChange={(e) => setNewModName(e.target.value)}
                 placeholder="Misal: Hidroponik Pakcoy"
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                className="mt-1 w-full rounded-xl border-2 border-slate-400 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300">
+              <label className="block text-sm font-black text-slate-900">
                 Kategori
               </label>
               <select
@@ -407,7 +435,7 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
                     e.target.value as "LIVESTOCK" | "AQUACULTURE" | "PLANT"
                   )
                 }
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                className="mt-1 w-full rounded-xl border-2 border-slate-400 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
               >
                 <option value="PLANT">🌱 Tanaman / Perkebunan</option>
                 <option value="LIVESTOCK">🐓 Peternakan Darat</option>
@@ -415,7 +443,7 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300">
+              <label className="block text-sm font-black text-slate-900">
                 Mode Tracking Subjek
               </label>
               <select
@@ -423,28 +451,24 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
                 onChange={(e) =>
                   setNewModTracking(e.target.value as "INDIVIDUAL" | "BATCH")
                 }
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                className="mt-1 w-full rounded-xl border-2 border-slate-400 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
               >
-                <option value="BATCH">
-                  Batch / Komunal (Kolam Lele / Bedeng Tanaman)
-                </option>
-                <option value="INDIVIDUAL">
-                  Individual (1 Kandang 1 Ayam / Pohon Indukan)
-                </option>
+                <option value="BATCH">Batch / Komunal (Kolam / Bedeng)</option>
+                <option value="INDIVIDUAL">Individual (1 Kandang 1 Hewan)</option>
               </select>
             </div>
           </div>
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-5 flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setShowNewModal(false)}
-              className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300"
+              className="rounded-xl border-2 border-slate-400 bg-slate-100 px-5 py-2.5 text-sm font-black text-slate-800"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950"
+              className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white"
             >
               Buat & Rakit Flow
             </button>
@@ -453,38 +477,37 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
       )}
 
       {/* Main Split View: Left 7 Lego Block Palette + Center React Flow Canvas */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        {/* Left Palette: 7 Lego Block Primitives */}
-        <div className="space-y-2.5 rounded-2xl border border-slate-800 bg-slate-900/90 p-4 lg:col-span-4">
+      <div className="grid gap-5 lg:grid-cols-12">
+        <div className="space-y-3 rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm lg:col-span-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">
               7 Lego Block Primitives
             </h3>
-            <span className="text-[11px] text-slate-400">
-              Klik untuk tambah ke kanvas
+            <span className="text-xs font-bold text-slate-600">
+              Klik untuk tambah
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {LEGO_PRIMITIVES.map((prim) => {
               const Icon = prim.icon;
               return (
                 <button
                   key={prim.type}
                   onClick={() => handleAddLegoBlock(prim)}
-                  className={`flex w-full items-center gap-3 rounded-xl border ${prim.borderColor} ${prim.color} p-2.5 text-left transition hover:scale-[1.01] hover:brightness-110`}
+                  className={`flex w-full items-center gap-3 rounded-2xl border-2 ${prim.borderColor} ${prim.color} p-3 text-left transition hover:scale-[1.01]`}
                 >
-                  <div className="rounded-lg bg-black/30 p-2">
-                    <Icon className="h-4 w-4" />
+                  <div className="rounded-xl bg-white p-2 shadow-sm">
+                    <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-white">
+                    <div className="text-sm font-black text-slate-900">
                       {prim.title}
                     </div>
-                    <div className="truncate text-[11px] opacity-80">
+                    <div className="truncate text-xs font-bold opacity-80">
                       {prim.subtitle}
                     </div>
                   </div>
-                  <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-black shadow-sm">
                     + Pasang
                   </span>
                 </button>
@@ -493,8 +516,7 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
           </div>
         </div>
 
-        {/* Center/Right: Interactive React Flow Canvas */}
-        <div className="h-[520px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 lg:col-span-8">
+        <div className="h-[540px] overflow-hidden rounded-3xl border-2 border-slate-300 bg-slate-50 shadow-inner lg:col-span-8">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -504,11 +526,34 @@ export function StudioFlowBuilder({ modules }: StudioFlowBuilderProps) {
             nodeTypes={nodeTypes}
             fitView
           >
-            <Background color="#334155" gap={20} />
-            <Controls className="!bg-slate-900 !border-slate-700 !text-white" />
+            <Background color="#94a3b8" gap={20} />
+            <Controls />
           </ReactFlow>
         </div>
       </div>
+
+      {/* Admin Container Upgrade Section */}
+      {cageSets.length > 0 && (
+        <div className="rounded-3xl border-2 border-slate-300 bg-white p-6 shadow-sm">
+          <h3 className="text-xl font-black text-slate-900">
+            Upgrade Layout Kandang (Tanpa Merusak Histori Lama)
+          </h3>
+          <p className="mt-1 text-sm font-bold text-slate-600">
+            Khusus Admin: Tambahkan slot kandang baru ke Set Kandang yang sudah ada.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {cageSets.map((cs) => (
+              <button
+                key={cs.id}
+                onClick={() => handleAddSlotToSet(cs)}
+                className="flex items-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-100 px-4 py-3 text-sm font-black text-slate-900 hover:bg-emerald-50 hover:border-emerald-600"
+              >
+                <Plus className="h-4 w-4 text-emerald-700" /> +1 Slot ke {cs.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,6 +43,16 @@ export interface LocalSubject {
   isActive: boolean;
   fedToday?: boolean;
   eggHarvestedToday?: boolean;
+  lastFedDate?: string; // YYYY-MM-DD (Auto-resets when calendar day changes!)
+  lastEggDate?: string; // YYYY-MM-DD (Auto-resets when calendar day changes!)
+}
+
+export function getTodayDateStr(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export interface LocalActivityLog {
@@ -96,7 +106,22 @@ export const localDb = new CymFarmOfflineDB();
  */
 export async function ensureInitialFarmSeed() {
   const existingCount = await localDb.farmModules.count();
-  if (existingCount > 0) return;
+  if (existingCount > 0) {
+    // Auto-reset daily flags if calendar date has moved to a new day!
+    const today = getTodayDateStr();
+    const allSubjects = await localDb.subjects.toArray();
+    for (const sub of allSubjects) {
+      const shouldResetFed = sub.fedToday && sub.lastFedDate !== today;
+      const shouldResetEgg = sub.eggHarvestedToday && sub.lastEggDate !== today;
+      if (shouldResetFed || shouldResetEgg) {
+        await localDb.subjects.update(sub.id, {
+          fedToday: shouldResetFed ? false : sub.fedToday,
+          eggHarvestedToday: shouldResetEgg ? false : sub.eggHarvestedToday,
+        });
+      }
+    }
+    return;
+  }
 
   // 1. Seed Default Modules with 7 Lego Block Primitives
   const ayamModule: LocalFarmModule = {
