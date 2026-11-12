@@ -352,46 +352,51 @@ export function StudioFlowBuilder({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full space-y-5 overflow-hidden">
       {/* Top Module Switcher & Create New Farm Module */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-sm font-black uppercase tracking-wider text-slate-700">
-            Pilih Modul Flow:
+      <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-300 bg-white p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+            Pilih Modul Alur:
           </span>
-          {modules.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setSelectedModuleId(m.id)}
-              className={`rounded-2xl border-2 px-4 py-2.5 text-sm font-black transition ${
-                m.id === selectedModuleId
-                  ? "border-emerald-900 bg-emerald-700 text-white shadow"
-                  : "border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200"
-              }`}
-            >
-              {m.name}{" "}
-              <span className="ml-1 rounded bg-black/15 px-1.5 py-0.5 text-[11px]">
-                {m.trackingMode}
-              </span>
-            </button>
-          ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {modules.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setSelectedModuleId(m.id)}
+                className={`flex w-full items-center justify-between rounded-2xl border-2 px-4 py-3 text-sm font-black transition active:scale-98 ${
+                  m.id === selectedModuleId
+                    ? "border-emerald-900 bg-emerald-700 text-white shadow-sm"
+                    : "border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100"
+                }`}
+              >
+                <span>{m.name}</span>
+                <span className={`rounded-lg px-2 py-0.5 text-[10px] font-black ${
+                  m.id === selectedModuleId ? "bg-black/20 text-white" : "bg-slate-200 text-slate-700"
+                }`}>
+                  {m.trackingMode}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-1.5 rounded-2xl border-2 border-dashed border-emerald-700 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-900 hover:bg-emerald-100"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-700 bg-emerald-50 py-3 text-sm font-black text-emerald-900 hover:bg-emerald-100 active:scale-98"
           >
-            <Sparkles className="h-4 w-4" /> + Buat Modul Farm Baru
+            <Sparkles className="h-4 w-4" /> + Buat Modul Baru
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          {saveNotice && (
-            <span className="rounded-xl border border-emerald-600 bg-emerald-50 px-3.5 py-1.5 text-sm font-black text-emerald-900">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-t border-slate-200 pt-3">
+          {saveNotice ? (
+            <span className="rounded-xl border border-emerald-600 bg-emerald-50 px-3 py-2 text-center text-xs font-black text-emerald-900">
               {saveNotice}
             </span>
-          )}
+          ) : <div />}
           <button
             onClick={handleSaveFlow}
-            className="flex items-center gap-2 rounded-2xl bg-sky-700 px-5 py-3 text-sm font-black text-white shadow hover:bg-sky-800"
+            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-sky-700 px-6 py-3.5 text-sm font-black text-white shadow hover:bg-sky-800 active:scale-98"
           >
             <Save className="h-5 w-5" /> Simpan Rakitan Flow
           </button>
@@ -400,114 +405,127 @@ export function StudioFlowBuilder({
 
       {/* Modal: Create New Farm Module */}
       {showNewModal && (
-        <form
-          onSubmit={handleCreateNewModule}
-          className="rounded-3xl border-2 border-emerald-700 bg-white p-6 shadow-xl"
+        <div
+          onClick={() => setShowNewModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
         >
-          <h3 className="text-xl font-black text-slate-900">
-            Buat Modul Peternakan / Tanaman Baru (In-App Builder)
-          </h3>
-          <p className="mt-1 text-sm font-bold text-slate-600">
-            Pilih jenis modul, lalu rakit alur kerjanya dengan 7 Blok Lego di bawah.
-          </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm font-black text-slate-900">
-                Nama Modul (Contoh: Cabai / Bebek / Maggot)
-              </label>
-              <input
-                type="text"
-                required
-                value={newModName}
-                onChange={(e) => setNewModName(e.target.value)}
-                placeholder="Misal: Hidroponik Pakcoy"
-                className="mt-1 w-full rounded-xl border-2 border-slate-400 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
-              />
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleCreateNewModule}
+            className="w-full max-w-lg rounded-3xl border-2 border-emerald-700 bg-white p-5 shadow-2xl"
+          >
+            <h3 className="text-xl font-black text-slate-900">
+              Buat Modul Peternakan / Tanaman Baru
+            </h3>
+            <p className="mt-1 text-xs font-bold text-slate-600">
+              Pilih jenis modul, lalu rakit alur kerjanya dengan 7 Blok Lego di bawah.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Nama Modul (Contoh: Cabai / Bebek / Maggot)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newModName}
+                  onChange={(e) => setNewModName(e.target.value)}
+                  placeholder="Misal: Hidroponik Pakcoy"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-slate-800">
+                    Kategori
+                  </label>
+                  <select
+                    value={newModCategory}
+                    onChange={(e) =>
+                      setNewModCategory(
+                        e.target.value as "LIVESTOCK" | "AQUACULTURE" | "PLANT"
+                      )
+                    }
+                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                  >
+                    <option value="PLANT">🌱 Tanaman</option>
+                    <option value="LIVESTOCK">🐓 Peternakan</option>
+                    <option value="AQUACULTURE">🐟 Perikanan</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-800">
+                    Mode Tracking
+                  </label>
+                  <select
+                    value={newModTracking}
+                    onChange={(e) =>
+                      setNewModTracking(e.target.value as "INDIVIDUAL" | "BATCH")
+                    }
+                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                  >
+                    <option value="BATCH">Batch (Kolam/Bedeng)</option>
+                    <option value="INDIVIDUAL">Individual (1 Hewan)</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-black text-slate-900">
-                Kategori
-              </label>
-              <select
-                value={newModCategory}
-                onChange={(e) =>
-                  setNewModCategory(
-                    e.target.value as "LIVESTOCK" | "AQUACULTURE" | "PLANT"
-                  )
-                }
-                className="mt-1 w-full rounded-xl border-2 border-slate-400 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-800"
               >
-                <option value="PLANT">🌱 Tanaman / Perkebunan</option>
-                <option value="LIVESTOCK">🐓 Peternakan Darat</option>
-                <option value="AQUACULTURE">🐟 Perikanan / Kolam</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-black text-slate-900">
-                Mode Tracking Subjek
-              </label>
-              <select
-                value={newModTracking}
-                onChange={(e) =>
-                  setNewModTracking(e.target.value as "INDIVIDUAL" | "BATCH")
-                }
-                className="mt-1 w-full rounded-xl border-2 border-slate-400 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white"
               >
-                <option value="BATCH">Batch / Komunal (Kolam / Bedeng)</option>
-                <option value="INDIVIDUAL">Individual (1 Kandang 1 Hewan)</option>
-              </select>
+                Buat Modul
+              </button>
             </div>
-          </div>
-          <div className="mt-5 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setShowNewModal(false)}
-              className="rounded-xl border-2 border-slate-400 bg-slate-100 px-5 py-2.5 text-sm font-black text-slate-800"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white"
-            >
-              Buat & Rakit Flow
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       )}
 
       {/* Main Split View: Left 7 Lego Block Palette + Center React Flow Canvas */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        <div className="space-y-3 rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm lg:col-span-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-12 w-full max-w-full">
+        {/* 7 Lego Block Palette (Full Width Stretch on Mobile, 0 Horizontal Scroll) */}
+        <div className="w-full rounded-3xl border-2 border-slate-300 bg-white p-4 shadow-sm lg:col-span-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
               7 Lego Block Primitives
             </h3>
-            <span className="text-xs font-bold text-slate-600">
-              Klik untuk tambah
+            <span className="text-[11px] font-bold text-slate-500">
+              Ketuk untuk pasang
             </span>
           </div>
-          <div className="space-y-2.5">
+
+          <div className="mt-3 flex flex-col gap-2 w-full">
             {LEGO_PRIMITIVES.map((prim) => {
               const Icon = prim.icon;
               return (
                 <button
                   key={prim.type}
                   onClick={() => handleAddLegoBlock(prim)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border-2 ${prim.borderColor} ${prim.color} p-3 text-left transition hover:scale-[1.01]`}
+                  className={`flex w-full items-center justify-between gap-2.5 rounded-2xl border-2 ${prim.borderColor} ${prim.color} p-2.5 text-left transition active:scale-98`}
                 >
-                  <div className="rounded-xl bg-white p-2 shadow-sm">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-black text-slate-900">
-                      {prim.title}
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="rounded-xl bg-white p-2 shadow-xs shrink-0">
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <div className="truncate text-xs font-bold opacity-80">
-                      {prim.subtitle}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs sm:text-sm font-black text-slate-900 leading-tight">
+                        {prim.title}
+                      </div>
+                      <div className="text-[10px] font-bold opacity-75 line-clamp-1">
+                        {prim.subtitle}
+                      </div>
                     </div>
                   </div>
-                  <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-black shadow-sm">
+
+                  <span className="shrink-0 rounded-xl bg-white px-2.5 py-1 text-[11px] font-black text-slate-900 shadow-xs">
                     + Pasang
                   </span>
                 </button>
@@ -516,7 +534,8 @@ export function StudioFlowBuilder({
           </div>
         </div>
 
-        <div className="h-[540px] overflow-hidden rounded-3xl border-2 border-slate-300 bg-slate-50 shadow-inner lg:col-span-8">
+        {/* Canvas Diagram (As is) */}
+        <div className="h-[460px] sm:h-[540px] w-full max-w-full overflow-hidden rounded-3xl border-2 border-slate-300 bg-slate-50 shadow-inner lg:col-span-8">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -534,21 +553,22 @@ export function StudioFlowBuilder({
 
       {/* Admin Container Upgrade Section */}
       {cageSets.length > 0 && (
-        <div className="rounded-3xl border-2 border-slate-300 bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-black text-slate-900">
-            Upgrade Layout Kandang (Tanpa Merusak Histori Lama)
+        <div className="w-full rounded-3xl border-2 border-slate-300 bg-white p-4 sm:p-5 shadow-sm">
+          <h3 className="text-lg font-black text-slate-900">
+            Upgrade Layout Kandang (Histori Tetap Aman)
           </h3>
-          <p className="mt-1 text-sm font-bold text-slate-600">
-            Khusus Admin: Tambahkan slot kandang baru ke Set Kandang yang sudah ada.
+          <p className="mt-0.5 text-xs font-bold text-slate-500">
+            Tambah slot kandang baru ke Set Kandang tanpa menghapus histori lama.
           </p>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 w-full">
             {cageSets.map((cs) => (
               <button
                 key={cs.id}
                 onClick={() => handleAddSlotToSet(cs)}
-                className="flex items-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-100 px-4 py-3 text-sm font-black text-slate-900 hover:bg-emerald-50 hover:border-emerald-600"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-xs sm:text-sm font-black text-slate-900 hover:bg-emerald-50 hover:border-emerald-600 active:scale-98"
               >
-                <Plus className="h-4 w-4 text-emerald-700" /> +1 Slot ke {cs.name}
+                <Plus className="h-4 w-4 text-emerald-700" />
+                <span>+1 Slot ke {cs.name}</span>
               </button>
             ))}
           </div>
