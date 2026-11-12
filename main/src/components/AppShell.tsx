@@ -17,6 +17,7 @@ import {
   BarChart3,
   Settings,
   UserCheck,
+  Calendar,
 } from "lucide-react";
 import { localDb } from "@/lib/offline-db";
 import { useAuthSession } from "@/lib/use-session";
@@ -36,6 +37,14 @@ export function AppShell({
   const router = useRouter();
   const { session } = useAuthSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Format hari dan tanggal lengkap bahasa Indonesia (tanpa singkatan)
+  const todayFormatted = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
 
   // Ambil data lokasi untuk sidebar
   const containers = useLiveQuery(
@@ -71,32 +80,40 @@ export function AppShell({
 
   return (
     <div className="relative min-h-screen bg-white text-slate-900">
-      {/* 1. TOP MINIMAL BAR: Cuma Icon Hamburger (Sidebar) + Nama Halaman Singkat */}
-      <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur">
+      {/* 1. TOP BAR: Icon Menu (Kiri), Info Hari/Tanggal & Lokasi (Tengah) */}
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-2.5 backdrop-blur">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-slate-200 bg-slate-50 text-slate-800 active:scale-95"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 bg-slate-50 text-slate-800 shadow-sm active:scale-95"
           aria-label="Buka Menu & Lokasi"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-7 w-7" />
         </button>
 
-        <div className="text-center font-black text-slate-900">
-          {pathname.startsWith("/lapangan")
-            ? activeContainerCode || "Area Kandang"
-            : pathname.startsWith("/analisa")
-              ? "Analisa & Pakan"
-              : "Admin & Modul"}
+        <div className="text-center">
+          {/* Hari dan Tanggal Lengkap (Tanpa Singkatan) */}
+          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-500">
+            <Calendar className="h-3.5 w-3.5 text-emerald-700" />
+            <span>{todayFormatted}</span>
+          </div>
+          {/* Judul Halaman / Lokasi Saat Ini */}
+          <div className="text-lg font-black leading-tight text-slate-900">
+            {pathname.startsWith("/lapangan")
+              ? activeContainerCode || "Area Kandang"
+              : pathname.startsWith("/analisa")
+                ? "Analisa & Pakan"
+                : "Admin & Modul"}
+          </div>
         </div>
 
         {/* Dummy spacer to balance hamburger icon */}
-        <div className="h-11 w-11" />
+        <div className="h-12 w-12" />
       </div>
 
-      {/* 2. MAIN CONTENT (Padding bawah cukup biar gak ketutup bottom navbar) */}
+      {/* 2. MAIN CONTENT */}
       <main className="pb-20">{children}</main>
 
-      {/* 3. BOTTOM NAVBAR MOBILE-STYLE (Fixed di paling bawah layar) */}
+      {/* 3. BOTTOM NAVBAR */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 shadow-lg backdrop-blur">
         <Link
           href="/lapangan"
@@ -137,7 +154,7 @@ export function AppShell({
         )}
       </nav>
 
-      {/* 4. TOGGLEABLE SIDEBAR (Isi: Semua Lokasi + Logout Sticky di Bawah) */}
+      {/* 4. TOGGLEABLE SIDEBAR */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -147,7 +164,6 @@ export function AppShell({
             onClick={(e) => e.stopPropagation()}
             className="flex h-full w-[85%] max-w-sm flex-col bg-white shadow-2xl"
           >
-            {/* Header Sidebar */}
             <div className="flex items-center justify-between border-b-2 border-slate-200 p-4">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-700 text-lg font-black text-white">
@@ -174,13 +190,11 @@ export function AppShell({
               </button>
             </div>
 
-            {/* Title Lokasi */}
             <div className="flex items-center gap-2 px-4 pt-4 text-xs font-black uppercase tracking-wider text-slate-500">
               <MapPin className="h-4 w-4 text-emerald-700" />
               <span>Daftar Seluruh Lokasi / Area</span>
             </div>
 
-            {/* List Lokasi SCROLLABLE */}
             <div className="flex-1 space-y-2 overflow-y-auto p-4 pr-3">
               {scanTargets.map((target) => {
                 const isSelected = activeContainerCode === target.code;
@@ -222,7 +236,6 @@ export function AppShell({
               })}
             </div>
 
-            {/* STICKY FOOTER DI PALING BAWAH SIDEBAR (TIDAK IKUT SCROLL) */}
             <div className="border-t-2 border-slate-200 bg-slate-50 p-4">
               <button
                 onClick={handleLogout}

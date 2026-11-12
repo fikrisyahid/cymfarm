@@ -58,15 +58,13 @@ export function WorkerQrView({
   const activeContainer = scanTargets[activeIndex] || scanTargets[0];
 
   const handlePrevTarget = () => {
-    if (scanTargets.length === 0) return;
-    const prevIdx = (activeIndex - 1 + scanTargets.length) % scanTargets.length;
-    onSelectCode(scanTargets[prevIdx].code);
+    if (scanTargets.length === 0 || activeIndex <= 0) return;
+    onSelectCode(scanTargets[activeIndex - 1].code);
   };
 
   const handleNextTarget = () => {
-    if (scanTargets.length === 0) return;
-    const nextIdx = (activeIndex + 1) % scanTargets.length;
-    onSelectCode(scanTargets[nextIdx].code);
+    if (scanTargets.length === 0 || activeIndex >= scanTargets.length - 1) return;
+    onSelectCode(scanTargets[activeIndex + 1].code);
   };
 
   const childSlots = containers
@@ -282,6 +280,9 @@ export function WorkerQrView({
     onSelectCode(bucket.code);
   };
 
+  const isFirst = activeIndex <= 0;
+  const isLast = activeIndex >= scanTargets.length - 1;
+
   return (
     <div className="flex flex-col bg-white">
       {/* TOAST NOTIFIKASI KECIL DI ATAS */}
@@ -291,22 +292,36 @@ export function WorkerQrView({
         </div>
       )}
 
-      {/* 1. TOP NAVIGASI CEPAT ANTAR SET (PREV & NEXT) */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 bg-slate-50">
+      {/* 1. TOP NAVIGASI CEPAT ANTAR SET (PREV & NEXT LEBIH BESAR & BERBATAS) */}
+      <div className="flex items-center justify-between border-b-2 border-slate-200 px-4 py-3 bg-slate-50">
         <button
           onClick={handlePrevTarget}
-          className="flex items-center gap-1 text-sm font-black text-slate-700 active:scale-95"
+          disabled={isFirst}
+          className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-3 text-base font-black transition active:scale-95 ${
+            isFirst
+              ? "border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed"
+              : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
+          }`}
         >
-          <ChevronLeft className="h-5 w-5" /> Prev
+          <ChevronLeft className="h-6 w-6 stroke-[3]" />
+          <span>Sebelumnya</span>
         </button>
-        <span className="text-xs font-black uppercase text-slate-400">
-          Geser / Ganti Lokasi
+
+        <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+          {activeIndex + 1} / {scanTargets.length}
         </span>
+
         <button
           onClick={handleNextTarget}
-          className="flex items-center gap-1 text-sm font-black text-slate-700 active:scale-95"
+          disabled={isLast}
+          className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-3 text-base font-black transition active:scale-95 ${
+            isLast
+              ? "border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed"
+              : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
+          }`}
         >
-          Next <ChevronRight className="h-5 w-5" />
+          <span>Berikutnya</span>
+          <ChevronRight className="h-6 w-6 stroke-[3]" />
         </button>
       </div>
 
