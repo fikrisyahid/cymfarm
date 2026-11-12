@@ -17,6 +17,7 @@ import {
   type LocalContainer,
   type LocalSubject,
 } from "@/lib/offline-db";
+import { toast } from "sonner";
 
 interface WorkerQrViewProps {
   containers: LocalContainer[];
@@ -42,13 +43,17 @@ export function WorkerQrView({
   const [maintenanceNote, setMaintenanceNote] = useState<string>("");
   const [evacuateTargetSlotId, setEvacuateTargetSlotId] = useState<string>("");
   const [fastingCountInput, setFastingCountInput] = useState<number>(20);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const todayDateStr = getTodayDateStr();
 
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+  const triggerToast = (msg: string, type: "success" | "info" | "warning" = "success") => {
+    if (type === "warning") {
+      toast.warning(msg);
+    } else if (type === "info") {
+      toast.info(msg);
+    } else {
+      toast.success(msg);
+    }
   };
 
   const activeIndex = Math.max(
@@ -285,13 +290,6 @@ export function WorkerQrView({
 
   return (
     <div className="flex flex-col bg-white">
-      {/* TOAST NOTIFIKASI KECIL DI ATAS */}
-      {toastMessage && (
-        <div className="mx-4 mt-2 rounded-2xl bg-slate-900 px-4 py-3 text-center text-base font-bold text-white shadow-lg">
-          {toastMessage}
-        </div>
-      )}
-
       {/* 1. TOP NAVIGASI CEPAT ANTAR SET (PREV & NEXT FLEX LEGA DENGAN PADDING) */}
       <div className="flex items-center justify-between gap-3 border-b-2 border-slate-200 bg-slate-50 px-3 py-2.5">
         <button
