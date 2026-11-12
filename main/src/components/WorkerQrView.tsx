@@ -435,26 +435,26 @@ export function WorkerQrView({
                     <div className="mt-3 flex flex-col gap-2">
                       <button
                         onClick={(e) => handleToggleFeedSlot(slot, e)}
-                        className={`flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm sm:text-base font-black transition active:scale-95 ${
+                        className={`flex min-h-[52px] w-full flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 rounded-2xl border-2 px-2 py-2 text-xs sm:text-sm font-black transition active:scale-95 leading-tight text-center ${
                           isFedToday
                             ? "border-emerald-700 bg-emerald-700 text-white shadow-xs"
                             : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
                         }`}
                       >
-                        <Utensils className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                        <span className="truncate">{isFedToday ? "Sudah Makan" : "Beri Makan"}</span>
+                        <Utensils className="h-4 w-4 shrink-0" />
+                        <span className="break-words">{isFedToday ? "Sudah Makan" : "Beri Makan"}</span>
                       </button>
 
                       <button
                         onClick={(e) => handleToggleEggSlot(slot, e)}
-                        className={`flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm sm:text-base font-black transition active:scale-95 ${
+                        className={`flex min-h-[52px] w-full flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 rounded-2xl border-2 px-2 py-2 text-xs sm:text-sm font-black transition active:scale-95 leading-tight text-center ${
                           isEggToday
                             ? "border-amber-500 bg-amber-400 text-slate-950 shadow-xs"
                             : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-amber-100"
                         }`}
                       >
-                        <Egg className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                        <span className="truncate">{isEggToday ? "ADA TELUR" : "Ada Telur?"}</span>
+                        <Egg className="h-4 w-4 shrink-0" />
+                        <span className="break-words">{isEggToday ? "ADA TELUR" : "Ada Telur?"}</span>
                       </button>
                     </div>
                   </div>
