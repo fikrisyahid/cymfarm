@@ -364,18 +364,18 @@ export function StudioFlowBuilder({
               <button
                 key={m.id}
                 onClick={() => setSelectedModuleId(m.id)}
-                className={`flex w-full items-center justify-between rounded-2xl border-2 px-4 py-3 text-sm font-black transition active:scale-98 ${
+                className={`flex w-full flex-col items-start gap-1 rounded-2xl border-2 px-4 py-3 text-left transition active:scale-98 ${
                   m.id === selectedModuleId
                     ? "border-emerald-900 bg-emerald-700 text-white shadow-sm"
                     : "border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100"
                 }`}
               >
-                <span>{m.name}</span>
-                <span className={`rounded-lg px-2 py-0.5 text-[10px] font-black ${
+                <span className={`inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
                   m.id === selectedModuleId ? "bg-black/20 text-white" : "bg-slate-200 text-slate-700"
                 }`}>
                   {m.trackingMode}
                 </span>
+                <span className="text-sm font-black leading-snug">{m.name}</span>
               </button>
             ))}
           </div>
