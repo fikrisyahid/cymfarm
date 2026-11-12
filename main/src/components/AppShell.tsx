@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -37,6 +37,21 @@ export function AppShell({
   const router = useRouter();
   const { session } = useAuthSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Kunci scroll halaman belakang (Body Scroll Lock) saat sidebar terbuka
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    };
+  }, [sidebarOpen]);
 
   // Format hari dan tanggal lengkap bahasa Indonesia (tanpa singkatan)
   const todayFormatted = new Intl.DateTimeFormat("id-ID", {
@@ -113,8 +128,8 @@ export function AppShell({
       {/* 2. MAIN CONTENT */}
       <main className="pb-20">{children}</main>
 
-      {/* 3. BOTTOM NAVBAR */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 shadow-lg backdrop-blur">
+      {/* 3. BOTTOM NAVBAR (Paten & Selalu Kelihatan) */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 shadow-lg backdrop-blur">
         <Link
           href="/lapangan"
           className={`flex flex-1 flex-col items-center justify-center py-1 transition ${
@@ -154,15 +169,15 @@ export function AppShell({
         )}
       </nav>
 
-      {/* 4. TOGGLEABLE SIDEBAR */}
+      {/* 4. TOGGLEABLE SIDEBAR (z-50 Menutup Penuh Di Atas Navbar) */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-50 bg-black/50 transition-opacity backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/50 transition-opacity backdrop-blur-sm touch-none"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex h-full w-[85%] max-w-sm flex-col bg-white shadow-2xl"
+            className="flex h-full w-[85%] max-w-sm flex-col bg-white shadow-2xl touch-auto"
           >
             <div className="flex items-center justify-between border-b-2 border-slate-200 p-4">
               <div className="flex items-center gap-2.5">
