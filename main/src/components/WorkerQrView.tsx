@@ -292,36 +292,36 @@ export function WorkerQrView({
         </div>
       )}
 
-      {/* 1. TOP NAVIGASI CEPAT ANTAR SET (PREV & NEXT LEBIH BESAR & BERBATAS) */}
-      <div className="flex items-center justify-between border-b-2 border-slate-200 px-4 py-3 bg-slate-50">
+      {/* 1. TOP NAVIGASI CEPAT ANTAR SET (PREV & NEXT FLEX LEGA DENGAN PADDING) */}
+      <div className="flex items-center justify-between gap-3 border-b-2 border-slate-200 bg-slate-50 px-3 py-2.5">
         <button
           onClick={handlePrevTarget}
           disabled={isFirst}
-          className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-3 text-base font-black transition active:scale-95 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-2 py-3 text-sm font-black transition active:scale-95 ${
             isFirst
               ? "border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed"
               : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
           }`}
         >
-          <ChevronLeft className="h-6 w-6 stroke-[3]" />
+          <ChevronLeft className="h-5 w-5 shrink-0 stroke-[3]" />
           <span>Sebelumnya</span>
         </button>
 
-        <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+        <div className="shrink-0 rounded-xl bg-white px-3 py-2 border border-slate-200 text-center text-xs font-black text-slate-600 shadow-xs">
           {activeIndex + 1} / {scanTargets.length}
-        </span>
+        </div>
 
         <button
           onClick={handleNextTarget}
           disabled={isLast}
-          className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-3 text-base font-black transition active:scale-95 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl border-2 py-3 text-sm font-black transition active:scale-95 ${
             isLast
               ? "border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed"
               : "border-slate-300 bg-white text-slate-900 hover:bg-slate-100 shadow-sm"
           }`}
         >
           <span>Berikutnya</span>
-          <ChevronRight className="h-6 w-6 stroke-[3]" />
+          <ChevronRight className="h-5 w-5 shrink-0 stroke-[3]" />
         </button>
       </div>
 
