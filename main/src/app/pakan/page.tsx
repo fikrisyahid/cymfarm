@@ -5,9 +5,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ensureInitialFarmSeed, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
 import { PakanManagementView } from "@/components/PakanManagementView";
+import { useFarmSync } from "@/hooks/useFarmSync";
 
 export default function PakanPage() {
   const [seeded, setSeeded] = useState(false);
+  const { isSyncing, triggerSync } = useFarmSync();
 
   useEffect(() => {
     ensureInitialFarmSeed().then(() => setSeeded(true));

@@ -19,9 +19,13 @@ import {
   UserCheck,
   Calendar,
   Wheat,
+  Cloud,
+  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import { localDb } from "@/lib/offline-db";
 import { useAuthSession } from "@/lib/use-session";
+import { useFarmSync } from "@/hooks/useFarmSync";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -43,6 +47,7 @@ export function AppShell({
   const { session } = useAuthSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const { isSyncing, triggerSync } = useFarmSync();
 
   // Kunci scroll halaman belakang (Body Scroll Lock) saat sidebar atau datepicker terbuka
   useEffect(() => {
@@ -141,8 +146,20 @@ export function AppShell({
           </div>
         </div>
 
-        {/* Dummy spacer to balance hamburger icon */}
-        <div className="h-12 w-12" />
+        {/* Sync Trigger & Cloud Status Indicator */}
+        <button
+          onClick={() => triggerSync()}
+          disabled={isSyncing}
+          title={isSyncing ? "Menyinkronkan data dengan Supabase..." : "Klik untuk sinkronisasi data cloud sekarang"}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 active:scale-95 transition disabled:opacity-50"
+          aria-label="Sinkronisasi Cloud"
+        >
+          {isSyncing ? (
+            <RefreshCw className="h-5 w-5 animate-spin text-emerald-700" />
+          ) : (
+            <Cloud className="h-5 w-5 text-emerald-700" />
+          )}
+        </button>
       </div>
 
       {/* 2. MAIN CONTENT */}

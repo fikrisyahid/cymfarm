@@ -5,11 +5,15 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ensureInitialFarmSeed, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
 import { WorkerQrView } from "@/components/WorkerQrView";
+import { useFarmSync } from "@/hooks/useFarmSync";
 
 export default function LapanganPage() {
   const [seeded, setSeeded] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>("SET-1A");
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+
+  // Hook sync otomatis multi-perangkat (buka halaman & tab focus)
+  const { isSyncing, triggerSync } = useFarmSync();
 
   useEffect(() => {
     ensureInitialFarmSeed().then(() => setSeeded(true));

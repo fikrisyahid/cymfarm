@@ -5,9 +5,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ensureInitialFarmSeed, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
 import { StudioFlowBuilder } from "@/components/StudioFlowBuilder";
+import { useFarmSync } from "@/hooks/useFarmSync";
 
 export default function AdminPage() {
   const [seeded, setSeeded] = useState(false);
+  const { isSyncing, triggerSync } = useFarmSync();
 
   useEffect(() => {
     ensureInitialFarmSeed().then(() => setSeeded(true));
