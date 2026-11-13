@@ -6,7 +6,7 @@ import { ensureInitialCleanState, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
 import { Activity, FileText, Search, X } from "lucide-react";
 
-type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "MAINTENANCE";
+type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "POPULATION_CHANGE" | "MAINTENANCE";
 
 export default function AnalisaPage() {
   const [ready, setReady] = useState(false);
@@ -119,6 +119,16 @@ export default function AnalisaPage() {
               🧺 Panen
             </button>
             <button
+              onClick={() => setSelectedFilter("POPULATION_CHANGE")}
+              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
+                selectedFilter === "POPULATION_CHANGE"
+                  ? "bg-blue-600 text-white"
+                  : "bg-blue-50 text-blue-900 hover:bg-blue-100"
+              }`}
+            >
+              📊 Populasi
+            </button>
+            <button
               onClick={() => setSelectedFilter("MAINTENANCE")}
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
                 selectedFilter === "MAINTENANCE"
@@ -161,6 +171,7 @@ export default function AnalisaPage() {
               const isRoutine = log.activityType === "ROUTINE";
               const isHarvest = log.activityType === "HARVEST";
               const isMaintenance = log.activityType === "MAINTENANCE";
+              const isPopulation = log.activityType === "POPULATION_CHANGE";
 
               return (
                 <div
@@ -175,12 +186,22 @@ export default function AnalisaPage() {
                             ? "bg-emerald-100 text-emerald-900"
                             : isHarvest
                             ? "bg-amber-100 text-amber-950"
+                            : isPopulation
+                            ? "bg-blue-100 text-blue-950"
                             : isMaintenance
                             ? "bg-rose-100 text-rose-950"
                             : "bg-slate-100 text-slate-700"
                         }`}
                       >
-                        {isRoutine ? "Rawat" : isHarvest ? "Panen" : isMaintenance ? "Kendala" : log.activityType}
+                        {isRoutine
+                          ? "Rawat"
+                          : isHarvest
+                          ? "Panen"
+                          : isPopulation
+                          ? "Populasi"
+                          : isMaintenance
+                          ? "Kendala"
+                          : log.activityType}
                       </span>
                       <span className="text-xs font-bold text-slate-400">
                         {dateStr} • {timeStr}
@@ -191,13 +212,21 @@ export default function AnalisaPage() {
                     </div>
                   </div>
 
-                  {isHarvest && log.quantity && (
+                  {(isHarvest || isPopulation) && log.quantity !== undefined && (
                     <div className="text-right shrink-0">
-                      <div className="text-base font-black text-amber-900">
-                        +{log.quantity}
+                      <div
+                        className={`text-base font-black ${
+                          isHarvest
+                            ? "text-amber-900"
+                            : Number(log.quantity) > 0
+                            ? "text-blue-900"
+                            : "text-slate-700"
+                        }`}
+                      >
+                        {Number(log.quantity) > 0 ? `+${log.quantity}` : log.quantity}
                       </div>
                       <div className="text-[10px] font-bold text-slate-500 uppercase">
-                        {log.unit || "Unit"}
+                        {log.unit || "Ekor / Unit"}
                       </div>
                     </div>
                   )}

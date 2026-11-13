@@ -57,7 +57,7 @@ export interface LocalActivityLog {
   moduleId: string;
   containerId: string;
   subjectId?: string;
-  activityType: "ROUTINE" | "HARVEST" | "MAINTENANCE" | "TERMINATE" | "CREATE";
+  activityType: "ROUTINE" | "HARVEST" | "MAINTENANCE" | "TERMINATE" | "CREATE" | "POPULATION_CHANGE";
   quantity: number;
   unit?: string;
   note?: string;
