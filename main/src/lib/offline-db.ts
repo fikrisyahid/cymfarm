@@ -13,7 +13,7 @@ import {
   subjectsData,
   feedPurchasesData,
   activityLogsData,
-} from "@/data/dummy";
+} from "@/data/seed";
 
 export interface LocalFarmModuleCategory {
   id: string;
@@ -202,7 +202,7 @@ export async function ensureInitialFarmSeed() {
     return;
   }
 
-  // Seed data directly from structured JSON files in src/data/dummy/
+  // Seed data directly from structured JSON files in src/data/seed/
   await localDb.farmModules.bulkPut(farmModulesData as LocalFarmModule[]);
   await localDb.containers.bulkPut(containersData as LocalContainer[]);
   await localDb.subjects.bulkPut(subjectsData as LocalSubject[]);
