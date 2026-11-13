@@ -99,6 +99,22 @@ export function ModularWorkerView({
     (l) => l.containerId === currentContainer?.id
   );
 
+  // Query panen historis paling akhir (kapanpun, termasuk kemarin/minggu lalu) untuk container aktif
+  const lastEverHarvestLog = useLiveQuery(
+    async () => {
+      if (!currentContainer) return null;
+      const logs = await localDb.activityLogs
+        .where("containerId")
+        .equals(currentContainer.id)
+        .filter((l) => l.activityType === "HARVEST")
+        .toArray();
+      if (!logs.length) return null;
+      return logs.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
+    },
+    [currentContainer?.id],
+    null
+  );
+
   // Hitung berapa kali pakan/rawat hari ini & kapan terakhir
   const routineLogsToday = (todayLogs || []).filter((l) => l.activityType === "ROUTINE");
   const routineCountToday = routineLogsToday.length;
@@ -110,20 +126,50 @@ export function ModularWorkerView({
       })
     : null;
 
-  // Hitung berapa kali panen hari ini, total panen, & kapan terakhir
+  // Hitung berapa kali panen hari ini, total panen
   const harvestLogsToday = (todayLogs || []).filter((l) => l.activityType === "HARVEST");
   const harvestCountToday = harvestLogsToday.length;
   const totalHarvestQtyToday = harvestLogsToday.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
-  const lastHarvestLog = harvestLogsToday.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
-  const lastHarvestTimeStr = lastHarvestLog
-    ? new Date(lastHarvestLog.performedAt).toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
+
+  // Logika Timestamp Panen: Jika hari ini -> jam (HH:mm WIB), jika beda hari -> tanggal lengkap (DD MMM YYYY) + berapa hari lalu
+  const isHarvestDoneToday = harvestCountToday > 0;
+
+  let harvestTimestampDisplay = "Belum pernah ada panen";
+  let daysSinceLastHarvest: number | null = null;
+  let isOverdueHarvest = false;
+
+  if (lastEverHarvestLog) {
+    const harvestDate = new Date(lastEverHarvestLog.performedAt);
+    const harvestDateStr = lastEverHarvestLog.performedAt.split("T")[0];
+
+    const todayDateObj = new Date(todayStr);
+    const prevDateObj = new Date(harvestDateStr);
+    const diffTime = todayDateObj.getTime() - prevDateObj.getTime();
+    daysSinceLastHarvest = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+
+    if (harvestDateStr === todayStr) {
+      // Masih hari yang sama: cukup jamnya
+      const timeStr = harvestDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      harvestTimestampDisplay = `Hari ini • ${timeStr} WIB`;
+    } else {
+      // Beda hari: tampilkan tanggal lengkap + peringatan hari
+      const formattedDate = harvestDate.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      harvestTimestampDisplay = `${formattedDate} (${daysSinceLastHarvest} hari lalu)`;
+      // Jika sudah >= 2 hari belum panen, kita flag sebagai overdue
+      if (daysSinceLastHarvest >= 2) {
+        isOverdueHarvest = true;
+      }
+    }
+  } else {
+    // Belum pernah panen sama sekali
+    isOverdueHarvest = currentPopulation > 0; // kalau ada populasi tapi belum pernah panen, layak di-highlight
+  }
 
   const isRoutineDoneToday = routineCountToday > 0;
-  const isHarvestDoneToday = harvestCountToday > 0;
 
   const handlePrev = () => {
     if (activeIndex > 0) {
@@ -498,16 +544,30 @@ export function ModularWorkerView({
           </div>
         </button>
 
-        {/* TOMBOL #2: PANEN / HASIL */}
+        {/* TOMBOL #2: PANEN / HASIL (DENGAN HIGHLIGHT KETIKA SUDAH LAMA BELUM PANEN) */}
         <button
           onClick={() => setShowHarvestModal(true)}
-          className="flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 border-amber-500 bg-amber-400 p-5 text-center text-slate-950 transition active:scale-98 shadow-md hover:bg-amber-300"
+          className={`relative flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md overflow-hidden ${
+            isHarvestDoneToday
+              ? "border-amber-400 bg-amber-300 text-slate-950 hover:bg-amber-200"
+              : isOverdueHarvest
+              ? "border-rose-500 bg-amber-400 text-slate-950 hover:bg-amber-300 ring-4 ring-rose-400/50 animate-pulse"
+              : "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300"
+          }`}
         >
+          {/* Badge Overdue Kecil di Pojok Kanan Atas Tombol */}
+          {isOverdueHarvest && (
+            <span className="absolute top-2.5 right-3 rounded-full bg-rose-600 px-2.5 py-0.5 text-[10px] font-black uppercase text-white shadow-xs">
+              ⚠️ {daysSinceLastHarvest ? `${daysSinceLastHarvest} Hari Belum Panen` : "Perlu Panen"}
+            </span>
+          )}
+
           <div className="flex items-center gap-2 text-xl font-black">
             <Scissors className="h-7 w-7" />
             <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
           </div>
-          <div className="text-xs font-bold text-slate-900 opacity-90">
+
+          <div className="text-xs font-bold text-slate-900 opacity-95">
             {isHarvestDoneToday ? (
               <span className="inline-flex items-center gap-1.5 font-black">
                 <span>Sudah {harvestCountToday}x</span>
@@ -515,13 +575,15 @@ export function ModularWorkerView({
                   <span>(Total: {totalHarvestQtyToday} {currentModule?.config.harvestUnitLabel || "Unit"})</span>
                 )}
                 <span>•</span>
-                <span>Terakhir: {lastHarvestTimeStr} WIB</span>
+                <span>Terakhir: {harvestTimestampDisplay}</span>
               </span>
             ) : (
-              <span>
-                {currentModule?.config.harvestType === "RECURRING"
-                  ? `Belum panen hari ini (${currentModule?.config.harvestUnitLabel || "Unit"})`
-                  : "Panen total sekaligus (Kosongkan wadah)"}
+              <span className="inline-flex items-center gap-1.5">
+                <span>{currentModule?.config.harvestType === "RECURRING" ? "Belum panen hari ini" : "Panen total"}</span>
+                <span>•</span>
+                <span className={`font-black ${isOverdueHarvest ? "text-rose-900 underline" : ""}`}>
+                  Terakhir: {harvestTimestampDisplay}
+                </span>
               </span>
             )}
           </div>
