@@ -46,6 +46,10 @@ export function WorkerQrView({
   const [evacuateTargetSlotId, setEvacuateTargetSlotId] = useState<string>("");
   const [fastingCountInput, setFastingCountInput] = useState<number>(20);
 
+  // State Modal Panen Parsial (Partial Cut) Lele / Batch
+  const [partialCutBatch, setPartialCutBatch] = useState<LocalSubject | null>(null);
+  const [cutQuantityInput, setCutQuantityInput] = useState<number>(5);
+
   const targetDateStr = selectedDate || getTodayDateStr();
 
   const triggerToast = (msg: string, type: "success" | "info" | "warning" = "success") => {
@@ -185,6 +189,55 @@ export function WorkerQrView({
     } else {
       triggerToast(`${slot.name}: Catatan telur dibatalkan`);
     }
+  };
+
+  const handleConfirmPartialCut = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!partialCutBatch) return;
+
+    const qty = Math.min(
+      Math.max(1, Number(cutQuantityInput) || 1),
+      partialCutBatch.populationCount
+    );
+    const remaining = partialCutBatch.populationCount - qty;
+    const isLudes = remaining <= 0;
+
+    if (isLudes) {
+      await localDb.subjects.update(partialCutBatch.id, {
+        populationCount: 0,
+        isActive: false,
+      });
+
+      // Update wadah jadi VACANT jika semua lele sudah diambil
+      await localDb.containers.update(partialCutBatch.containerId, {
+        status: "VACANT",
+      });
+    } else {
+      await localDb.subjects.update(partialCutBatch.id, {
+        populationCount: remaining,
+      });
+    }
+
+    // Catat ke Log Aktivitas
+    await localDb.activityLogs.put({
+      id: `log-lele-cut-${Date.now()}`,
+      moduleId: partialCutBatch.moduleId,
+      containerId: partialCutBatch.containerId,
+      subjectId: partialCutBatch.id,
+      activityType: "FINISH_FASTING_CUT",
+      quantity: qty,
+      note: `Ambil / potong ${qty} ekor lele dari ${activeContainer?.name} (Sisa di ember: ${remaining} ekor)`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    triggerToast(
+      isLudes
+        ? `🎉 Semua (${qty} ekor) lele selesai dipotong! Ember sekarang kosong.`
+        : `🔪 Berhasil ambil ${qty} ekor lele! Sisa di ember: ${remaining} ekor.`
+    );
+
+    setPartialCutBatch(null);
   };
 
   const handlePopulateVacantSlot = async (slot: LocalContainer, e: React.MouseEvent) => {
@@ -605,15 +658,13 @@ export function WorkerQrView({
                     </div>
 
                     <button
-                      onClick={async () => {
-                        await localDb.subjects.update(batch.id, {
-                          isActive: false,
-                        });
-                        triggerToast(`Lele selesai dipotong!`);
+                      onClick={() => {
+                        setPartialCutBatch(batch);
+                        setCutQuantityInput(Math.min(5, batch.populationCount));
                       }}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-4 text-lg font-black text-white shadow active:scale-95"
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-4 text-lg font-black text-white shadow active:scale-95 hover:bg-emerald-800"
                     >
-                      <Scissors className="h-6 w-6" /> Selesai Potong
+                      <Scissors className="h-6 w-6" /> Ambil / Potong Lele
                     </button>
                   </div>
                 );
@@ -733,6 +784,127 @@ export function WorkerQrView({
                 className="flex-1 rounded-2xl bg-amber-500 py-3 text-base font-black text-slate-950"
               >
                 Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* POPUP MODAL: AMBIL / POTONG LELE SECARA PARSIAL */}
+      {partialCutBatch && (
+        <div
+          onClick={() => setPartialCutBatch(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleConfirmPartialCut}
+            className="w-full max-w-sm rounded-3xl border-3 border-emerald-600 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center gap-2 text-emerald-800 border-b-2 border-slate-200 pb-3">
+              <Scissors className="h-6 w-6 shrink-0" />
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  Ambil / Potong Lele
+                </h3>
+                <p className="text-xs font-bold text-slate-500">
+                  Total di ember saat ini:{" "}
+                  <strong className="text-slate-900">
+                    {partialCutBatch.populationCount} ekor
+                  </strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                Berapa ekor yang diambil hari ini?
+              </label>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCutQuantityInput((prev) => Math.max(1, prev - 1))
+                  }
+                  className="h-12 w-12 rounded-2xl border-2 border-slate-300 bg-slate-100 text-2xl font-black text-slate-800 hover:bg-slate-200 active:scale-95 flex items-center justify-center"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={partialCutBatch.populationCount}
+                  value={cutQuantityInput}
+                  onChange={(e) => setCutQuantityInput(Number(e.target.value))}
+                  className="flex-1 rounded-2xl border-2 border-emerald-600 bg-emerald-50/50 py-2.5 text-center text-3xl font-black text-slate-900 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCutQuantityInput((prev) =>
+                      Math.min(partialCutBatch.populationCount, prev + 1)
+                    )
+                  }
+                  className="h-12 w-12 rounded-2xl border-2 border-slate-300 bg-slate-100 text-2xl font-black text-slate-800 hover:bg-slate-200 active:scale-95 flex items-center justify-center"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Tombol Cepat Pilihan Jumlah */}
+              <div className="flex gap-2 pt-1">
+                {[5, 10, partialCutBatch.populationCount].map((qty, idx) => {
+                  if (qty > partialCutBatch.populationCount && idx < 2) return null;
+                  const label =
+                    idx === 2
+                      ? `Semua (${qty})`
+                      : `${qty} Ekor`;
+
+                  return (
+                    <button
+                      key={qty}
+                      type="button"
+                      onClick={() => setCutQuantityInput(qty)}
+                      className={`flex-1 rounded-xl py-2 text-xs font-black border transition active:scale-95 ${
+                        cutQuantityInput === qty
+                          ? "border-emerald-700 bg-emerald-100 text-emerald-950 font-black shadow-xs"
+                          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-3 text-xs font-bold text-slate-600 border border-slate-200">
+                Sisa di ember setelah diambil:{" "}
+                <strong className="text-emerald-800">
+                  {Math.max(0, partialCutBatch.populationCount - cutQuantityInput)}{" "}
+                  ekor
+                </strong>
+                {partialCutBatch.populationCount - cutQuantityInput === 0 && (
+                  <span className="block text-slate-500 mt-0.5">
+                    (Ember akan otomatis kosong & siap dipakai lagi)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPartialCutBatch(null)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-base font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-base font-black text-white active:scale-95 hover:bg-emerald-800 shadow-sm"
+              >
+                Konfirmasi Potong
               </button>
             </div>
           </form>
