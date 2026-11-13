@@ -127,7 +127,7 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
       };
     });
 
-    // Bulk put to IndexedDB in a transaction
+    // Bulk put to IndexedDB in a transaction + Prune local records deleted from Cloud (Anti-Zombie)
     await localDb.transaction(
       "rw",
       [
@@ -140,19 +140,59 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
         localDb.activityLogs,
       ],
       async () => {
-        if (modules?.length) await localDb.farmModules.bulkPut(modules);
+        // 1. Reconcile & Prune Feed Purchases (Anti-Zombie)
+        if (Array.isArray(feedPurchases)) {
+          const cloudFeedIds = new Set(feedPurchases.map((fp: any) => fp.id));
+          const localFeeds = await localDb.feedPurchases.toArray();
+          for (const lf of localFeeds) {
+            if (!cloudFeedIds.has(lf.id)) {
+              await localDb.feedPurchases.delete(lf.id);
+            }
+          }
+          if (feedPurchases.length > 0) {
+            const formattedPurchases = feedPurchases.map((fp: any) => ({
+              ...fp,
+              weightKg: Number(fp.weightKg),
+              purchasedAt: new Date(fp.purchasedAt).toISOString(),
+            }));
+            await localDb.feedPurchases.bulkPut(formattedPurchases);
+          }
+        }
+
+        // 2. Reconcile & Prune Containers (Anti-Zombie)
+        if (Array.isArray(containers)) {
+          const cloudContIds = new Set(containers.map((c: any) => c.id));
+          const localConts = await localDb.containers.toArray();
+          for (const lc of localConts) {
+            if (!cloudContIds.has(lc.id)) {
+              await localDb.containers.delete(lc.id);
+            }
+          }
+          if (containers.length > 0) {
+            await localDb.containers.bulkPut(containers);
+          }
+        }
+
+        // 3. Reconcile & Prune Modules
+        if (Array.isArray(modules)) {
+          const cloudModIds = new Set(modules.map((m: any) => m.id));
+          const localMods = await localDb.farmModules.toArray();
+          for (const lm of localMods) {
+            if (!cloudModIds.has(lm.id)) {
+              await localDb.farmModules.delete(lm.id);
+            }
+          }
+          if (modules.length > 0) {
+            await localDb.farmModules.bulkPut(modules);
+          }
+        }
+
+        // 4. Upsert Module Categories & Subjects & Feed Categories
         if (moduleCategories?.length) await localDb.farmModuleCategories.bulkPut(moduleCategories);
-        if (containers?.length) await localDb.containers.bulkPut(containers);
         if (reconciledSubjects?.length) await localDb.subjects.bulkPut(reconciledSubjects);
         if (feedCategories?.length) await localDb.feedCategories.bulkPut(feedCategories);
-        if (feedPurchases?.length) {
-          const formattedPurchases = feedPurchases.map((fp: any) => ({
-            ...fp,
-            weightKg: Number(fp.weightKg),
-            purchasedAt: new Date(fp.purchasedAt).toISOString(),
-          }));
-          await localDb.feedPurchases.bulkPut(formattedPurchases);
-        }
+
+        // 5. Activity logs reconciliation
         if (activityLogs?.length) {
           const formattedLogs = activityLogs.map((l: any) => ({
             ...l,

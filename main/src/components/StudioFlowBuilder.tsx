@@ -630,7 +630,7 @@ export function StudioFlowBuilder({
       id: `log-cont-del-${Date.now()}`,
       moduleId: target.moduleId,
       containerId: target.id,
-      activityType: "CONTAINER_UPDATE",
+      activityType: "CONTAINER_DELETE",
       quantity: 1,
       note: `Hapus area/wadah fisik: ${target.name} (${target.code})`,
       performedAt: new Date().toISOString(),

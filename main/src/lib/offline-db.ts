@@ -131,6 +131,7 @@ export function getActivityCategory(activityType: ActivityType): ActivityCategor
     case "MAINTENANCE_RESOLVED":
     case "CONTAINER_CREATE":
     case "CONTAINER_UPDATE":
+    case "CONTAINER_DELETE":
     case "EVACUATE_SUBJECT":
       return "STRUKTURAL";
     case "MODULE_CREATE":

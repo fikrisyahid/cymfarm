@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +25,10 @@ export async function POST(req: Request) {
     } = body;
 
     // 1. Process pending activity logs sent from offline client
+    // Also process DELETION actions immediately so PostgreSQL drops deleted records
     if (Array.isArray(pendingLogs) && pendingLogs.length > 0) {
       for (const log of pendingLogs) {
+        // Record the immutable event log
         await db
           .insert(schema.activityLogs)
           .values({
@@ -48,6 +50,22 @@ export async function POST(req: Request) {
               syncedToCloud: true,
             },
           });
+
+        // Handle Deletions in PostgreSQL
+        if (log.activityType === "FEED_PURCHASE_DELETE") {
+          // In log, note contains or subjectId/containerId or we match ID
+          // The deleted feed id was passed in log.containerId or note
+          // To be 100% precise, we extract feedId if present, or if containerId is feed id
+          const targetFeedId = log.subjectId || log.containerId;
+          if (targetFeedId && targetFeedId !== "gudang") {
+            await db.delete(schema.feedPurchases).where(eq(schema.feedPurchases.id, targetFeedId));
+          }
+        } else if (log.activityType === "CONTAINER_DELETE") {
+          const targetContId = log.containerId;
+          if (targetContId) {
+            await db.delete(schema.containers).where(eq(schema.containers.id, targetContId));
+          }
+        }
       }
     }
 

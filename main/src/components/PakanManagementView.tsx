@@ -193,11 +193,12 @@ export function PakanManagementView({
 
     await localDb.feedPurchases.delete(feed.id);
 
-    // Catat ke Activity Log
+    // Catat ke Activity Log (subjectId diisi feed.id agar server sinkronisasi tahu target penghapusan)
     await localDb.activityLogs.put({
       id: `log-feed-del-${Date.now()}`,
       moduleId: "logistik",
       containerId: "gudang",
+      subjectId: feed.id,
       activityType: "FEED_PURCHASE_DELETE",
       quantity: Math.round(feed.weightKg),
       note: `Hapus pakan: ${feed.feedName} (${feed.weightKg} KG)`,
