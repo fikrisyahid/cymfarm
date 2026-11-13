@@ -56,8 +56,46 @@ export function ModularWorkerView({
   );
 
   const todayStr = getTodayDateStr();
-  const isRoutineDoneToday = currentSubject?.lastRoutineDate === todayStr;
-  const isHarvestDoneToday = currentSubject?.lastHarvestDate === todayStr;
+
+  // Query log aktivitas hari ini untuk container aktif
+  const todayLogs = useLiveQuery(
+    async () => {
+      if (!currentContainer) return [];
+      const logs = await localDb.activityLogs
+        .where("containerId")
+        .equals(currentContainer.id)
+        .toArray();
+      return logs.filter((l) => l.performedAt.startsWith(todayStr));
+    },
+    [currentContainer?.id, todayStr],
+    []
+  );
+
+  // Hitung berapa kali pakan/rawat hari ini & kapan terakhir
+  const routineLogsToday = (todayLogs || []).filter((l) => l.activityType === "ROUTINE");
+  const routineCountToday = routineLogsToday.length;
+  const lastRoutineLog = routineLogsToday.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
+  const lastRoutineTimeStr = lastRoutineLog
+    ? new Date(lastRoutineLog.performedAt).toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
+  // Hitung berapa kali panen hari ini, total panen, & kapan terakhir
+  const harvestLogsToday = (todayLogs || []).filter((l) => l.activityType === "HARVEST");
+  const harvestCountToday = harvestLogsToday.length;
+  const totalHarvestQtyToday = harvestLogsToday.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+  const lastHarvestLog = harvestLogsToday.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
+  const lastHarvestTimeStr = lastHarvestLog
+    ? new Date(lastHarvestLog.performedAt).toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
+  const isRoutineDoneToday = routineCountToday > 0;
+  const isHarvestDoneToday = harvestCountToday > 0;
 
   const handlePrev = () => {
     if (activeIndex > 0) {
@@ -244,9 +282,9 @@ export function ModularWorkerView({
       {/* 3. TOMBOL RAKSASA #1: PERAWATAN HARIAN */}
       <button
         onClick={handleRoutineAction}
-        className={`flex min-h-[96px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
+        className={`flex min-h-[104px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
           isRoutineDoneToday
-            ? "border-emerald-600 bg-emerald-50 text-emerald-950"
+            ? "border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
             : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
         }`}
       >
@@ -258,27 +296,47 @@ export function ModularWorkerView({
           )}
           <span>{currentModule?.config.routineActionLabel || "Perawatan Harian"}</span>
         </div>
-        <span className="text-xs font-bold opacity-80">
-          {isRoutineDoneToday
-            ? "✅ Sudah dikerjakan hari ini (Tap lagi jika ingin update)"
-            : "Belum dikerjakan hari ini — Tap tombol ini"}
-        </span>
+        <div className="text-xs font-bold opacity-90">
+          {isRoutineDoneToday ? (
+            <span className="inline-flex items-center gap-1.5 font-black text-emerald-900">
+              <span>Sudah {routineCountToday}x hari ini</span>
+              <span>•</span>
+              <span>Terakhir: {lastRoutineTimeStr} WIB</span>
+              <span className="text-[10px] font-normal opacity-75">(Tap untuk tambah lagi)</span>
+            </span>
+          ) : (
+            <span>Belum dilakukan hari ini — Tap tombol ini</span>
+          )}
+        </div>
       </button>
 
       {/* 4. TOMBOL RAKSASA #2: PANEN / HASIL */}
       <button
         onClick={() => setShowHarvestModal(true)}
-        className="flex min-h-[96px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 border-amber-500 bg-amber-400 p-5 text-center text-slate-950 transition active:scale-98 shadow-md hover:bg-amber-300"
+        className="flex min-h-[104px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 border-amber-500 bg-amber-400 p-5 text-center text-slate-950 transition active:scale-98 shadow-md hover:bg-amber-300"
       >
         <div className="flex items-center gap-2 text-xl font-black">
           <Scissors className="h-7 w-7" />
           <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
         </div>
-        <span className="text-xs font-bold opacity-80">
-          {currentModule?.config.harvestType === "RECURRING"
-            ? `Panen berkala (${currentModule?.config.harvestUnitLabel || "Unit"})`
-            : "Panen total sekaligus (Kosongkan wadah)"}
-        </span>
+        <div className="text-xs font-bold text-slate-900 opacity-90">
+          {isHarvestDoneToday ? (
+            <span className="inline-flex items-center gap-1.5 font-black">
+              <span>Sudah {harvestCountToday}x</span>
+              {currentModule?.config.harvestType === "RECURRING" && (
+                <span>(Total: {totalHarvestQtyToday} {currentModule?.config.harvestUnitLabel || "Unit"})</span>
+              )}
+              <span>•</span>
+              <span>Terakhir: {lastHarvestTimeStr} WIB</span>
+            </span>
+          ) : (
+            <span>
+              {currentModule?.config.harvestType === "RECURRING"
+                ? `Belum panen hari ini (${currentModule?.config.harvestUnitLabel || "Unit"})`
+                : "Panen total sekaligus (Kosongkan wadah)"}
+            </span>
+          )}
+        </div>
       </button>
 
       {/* 5. LAPOR KENDALA / RUSAK */}
