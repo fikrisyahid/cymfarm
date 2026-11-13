@@ -28,6 +28,9 @@ export interface FlowNodeData extends Record<string, unknown> {
     autoSkipVacant?: boolean;
     timerHours?: number; // e.g., 72 hours for 3-day Lele fasting
     zeroYieldThresholdDays?: number; // e.g., 10 days of 0 eggs -> recommend cut
+    unitLabel?: string; // e.g. "Butir", "Ekor", "Kg", "Liter", "Ikat"
+    singleActionLabel?: string; // e.g. "Kasih Makan" / "Ada Telur" / "Panen Hasil"
+    batchActionLabel?: string; // e.g. "Kasih Makan 1 Set Kandang" / "Panen Semua Telur di Set Ini"
     actionButtons?: Array<{
       id: string;
       label: string;

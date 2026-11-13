@@ -131,6 +131,16 @@ function LegoBlockNode({ data }: { data: FlowNodeData }) {
           {data.description}
         </p>
       )}
+      {data.config?.singleActionLabel && (
+        <div className="mt-2 inline-block rounded-lg bg-white px-2 py-0.5 text-[11px] font-black text-slate-800 shadow-sm mr-1">
+          🔘 Tombol: &ldquo;{data.config.singleActionLabel}&rdquo;
+        </div>
+      )}
+      {data.config?.batchActionLabel && (
+        <div className="mt-2 inline-block rounded-lg bg-white px-2 py-0.5 text-[11px] font-black text-slate-800 shadow-sm mr-1">
+          ⚡ Batch: &ldquo;{data.config.batchActionLabel}&rdquo;
+        </div>
+      )}
       {data.config?.timerHours && (
         <div className="mt-2 inline-block rounded-lg bg-white px-2.5 py-1 text-xs font-black text-orange-800 shadow-sm">
           ⏱️ Timer: {data.config.timerHours} Jam
@@ -190,6 +200,9 @@ export function StudioFlowBuilder({
   const [editDesc, setEditDesc] = useState("");
   const [editTimerHours, setEditTimerHours] = useState(72);
   const [editThresholdDays, setEditThresholdDays] = useState(7);
+  const [editSingleActionLabel, setEditSingleActionLabel] = useState("");
+  const [editBatchActionLabel, setEditBatchActionLabel] = useState("");
+  const [editUnitLabel, setEditUnitLabel] = useState("");
 
   const activeModule = useMemo(
     () => modules.find((m) => m.id === selectedModuleId) || modules[0],
@@ -244,6 +257,9 @@ export function StudioFlowBuilder({
     setEditDesc(legoNode.data.description || "");
     setEditTimerHours(legoNode.data.config?.timerHours || 72);
     setEditThresholdDays(legoNode.data.config?.zeroYieldThresholdDays || 7);
+    setEditSingleActionLabel(legoNode.data.config?.singleActionLabel || "");
+    setEditBatchActionLabel(legoNode.data.config?.batchActionLabel || "");
+    setEditUnitLabel(legoNode.data.config?.unitLabel || "");
   }, []);
 
   // Simpan hasil edit node ke daftar nodes kanvas
@@ -264,6 +280,9 @@ export function StudioFlowBuilder({
                 ...n.data.config,
                 timerHours: editTimerHours,
                 zeroYieldThresholdDays: editThresholdDays,
+                singleActionLabel: editSingleActionLabel.trim() || undefined,
+                batchActionLabel: editBatchActionLabel.trim() || undefined,
+                unitLabel: editUnitLabel.trim() || undefined,
               },
             },
           };
@@ -930,6 +949,107 @@ export function StudioFlowBuilder({
                   className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-900"
                 />
               </div>
+
+              {/* Setting khusus jika Blok DAILY_ROUTINE */}
+              {editingNode.data.blockType === "DAILY_ROUTINE" && (
+                <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/70 p-3.5 space-y-2.5">
+                  <div className="text-xs font-black text-emerald-950">
+                    Kustomisasi Label Tombol Lapangan:
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Teks Tombol Per-Slot / Individual:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Kasih Makan / Siram Nutrisi"
+                      value={editSingleActionLabel}
+                      onChange={(e) => setEditSingleActionLabel(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-emerald-400 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Teks Tombol 1 Set Sekaligus (Batch):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Kasih Makan 1 Set Kandang"
+                      value={editBatchActionLabel}
+                      onChange={(e) => setEditBatchActionLabel(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-emerald-400 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Setting khusus jika Blok RECURRING_YIELD */}
+              {editingNode.data.blockType === "RECURRING_YIELD" && (
+                <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-3.5 space-y-2.5">
+                  <div className="text-xs font-black text-amber-950">
+                    Kustomisasi Panen Hasil Harian:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        Tombol Per-Slot:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Ada Telur / Petik"
+                        value={editSingleActionLabel}
+                        onChange={(e) => setEditSingleActionLabel(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-amber-400 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        Satuan Hasil:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Butir / Kg / Liter"
+                        value={editUnitLabel}
+                        onChange={(e) => setEditUnitLabel(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-amber-400 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Teks Tombol Panen 1 Set Sekaligus:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Panen Semua Telur di Set Ini"
+                      value={editBatchActionLabel}
+                      onChange={(e) => setEditBatchActionLabel(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-amber-400 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Setting khusus jika Blok TERMINATE_HARVEST */}
+              {editingNode.data.blockType === "TERMINATE_HARVEST" && (
+                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50/70 p-3.5 space-y-2.5">
+                  <div className="text-xs font-black text-rose-950">
+                    Kustomisasi Label Panen Akhir:
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Label Tombol Terminasi / Potong:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Potong / Panen Cabut"
+                      value={editSingleActionLabel}
+                      onChange={(e) => setEditSingleActionLabel(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-rose-400 bg-white px-3 py-2 text-sm font-bold text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Setting khusus jika Blok AUTO_RULE */}
               {editingNode.data.blockType === "AUTO_RULE" && (
