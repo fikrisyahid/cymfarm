@@ -17,10 +17,14 @@ import {
   Cloud,
   RefreshCw,
   Box,
+  Camera,
+  Home,
 } from "lucide-react";
 import { localDb } from "@/lib/offline-db";
 import { useAuthSession } from "@/lib/use-session";
 import { useFarmSync } from "@/hooks/useFarmSync";
+import { QrScannerModal } from "./QrScannerModal";
+import { toast } from "sonner";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -37,9 +41,27 @@ export function AppShell({
   const router = useRouter();
   const { session } = useAuthSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const { isSyncing, triggerSync } = useFarmSync();
 
   const containers = useLiveQuery(() => localDb.containers.toArray(), [], []);
+
+  const handleScanSuccess = (code: string) => {
+    setScannerOpen(false);
+    const target = containers?.find(
+      (c) => c.code.toLowerCase() === code.toLowerCase()
+    );
+    if (target) {
+      if (onSelectContainerCode) {
+        onSelectContainerCode(target.code);
+      } else {
+        router.push(`/lapangan?loc=${target.code}`);
+      }
+      toast.success(`🎯 Membuka ${target.name}!`);
+    } else {
+      toast.error(`Kode QR "${code}" tidak ditemukan pada daftar wadah.`);
+    }
+  };
 
   const handleLogout = async () => {
     if (typeof window !== "undefined") {
@@ -102,8 +124,8 @@ export function AppShell({
       {/* 2. MAIN CONTENT (STRETCH FOR TABLET & DESKTOP) */}
       <main className="p-4 sm:p-6 lg:p-8 pb-24 w-full max-w-7xl mx-auto">{children}</main>
 
-      {/* 3. BOTTOM BAR PATEN */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white shadow-lg">
+      {/* 3. BOTTOM BAR DENGAN SCAN QR CENTER FLOATING */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 backdrop-blur shadow-lg items-center justify-around px-2">
         <Link
           href="/lapangan"
           className={`flex flex-1 flex-col items-center justify-center py-1 transition ${
@@ -112,9 +134,24 @@ export function AppShell({
               : "text-slate-500 font-bold hover:text-slate-800"
           }`}
         >
-          <QrCode className="h-6 w-6" />
-          <span className="text-[11px]">Area Lapangan</span>
+          <Home className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5">Lapangan</span>
         </Link>
+
+        {/* Center Floating Action Button (FAB) Scan QR */}
+        <div className="relative -top-5 flex flex-col items-center px-2">
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-xl hover:bg-emerald-800 active:scale-95 transition border-4 border-white"
+            title="Scan QR Kandang Langsung"
+            aria-label="Scan QR Kandang"
+          >
+            <Camera className="h-6 w-6 stroke-[2.5]" />
+          </button>
+          <span className="text-[10px] font-black text-slate-800 mt-1">
+            Scan QR
+          </span>
+        </div>
 
         <Link
           href="/analisa"
@@ -124,8 +161,8 @@ export function AppShell({
               : "text-slate-500 font-bold hover:text-slate-800"
           }`}
         >
-          <BarChart3 className="h-6 w-6" />
-          <span className="text-[11px]">Riwayat</span>
+          <BarChart3 className="h-5 w-5" />
+          <span className="text-[10px] mt-0.5">Riwayat</span>
         </Link>
 
         {session?.role === "ADMIN" && (
@@ -137,11 +174,19 @@ export function AppShell({
                 : "text-slate-500 font-bold hover:text-slate-800"
             }`}
           >
-            <Settings className="h-6 w-6" />
-            <span className="text-[11px]">Admin Studio</span>
+            <Settings className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5">Studio</span>
           </Link>
         )}
       </nav>
+
+      {/* SCANNER MODAL DARI NAVBAR */}
+      {scannerOpen && (
+        <QrScannerModal
+          onScanSuccess={handleScanSuccess}
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
 
       {/* 4. TOGGLE SIDEBAR AREA */}
       {sidebarOpen && (

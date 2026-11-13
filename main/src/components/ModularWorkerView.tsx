@@ -421,22 +421,14 @@ export function ModularWorkerView({
         </button>
       </div>
 
-      {/* QUICK ACTIONS BAR: SCAN QR KAMERA & BUKA SEMUA KANDANG */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => setShowScannerModal(true)}
-          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-700 bg-emerald-700 py-3 px-4 text-xs font-black text-white shadow-sm hover:bg-emerald-800 active:scale-95 transition"
-        >
-          <Camera className="h-4 w-4" />
-          <span>Scan QR Kandang</span>
-        </button>
-
+      {/* QUICK ACTIONS BAR: LIHAT & PILIH SEMUA KANDANG */}
+      <div>
         <button
           onClick={() => setShowGridModal(true)}
-          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white py-3 px-4 text-xs font-black text-slate-800 shadow-xs hover:bg-slate-50 active:scale-95 transition"
+          className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white py-3 px-4 text-xs font-black text-slate-800 shadow-xs hover:bg-slate-50 active:scale-95 transition"
         >
           <LayoutGrid className="h-4 w-4 text-emerald-700" />
-          <span>Daftar {displayContainers.length} Kandang</span>
+          <span>Buka Semua Kandang ({displayContainers.length} Wadah)</span>
         </button>
       </div>
 
