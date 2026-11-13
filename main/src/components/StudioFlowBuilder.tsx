@@ -26,6 +26,7 @@ import {
   Save,
   Sparkles,
   Plus,
+  X,
 } from "lucide-react";
 import {
   localDb,
@@ -149,6 +150,10 @@ function LegoBlockNode({ data }: { data: FlowNodeData }) {
   );
 }
 
+const nodeTypes = {
+  legoNode: LegoBlockNode,
+};
+
 interface StudioFlowBuilderProps {
   modules: LocalFarmModule[];
   containers?: LocalContainer[];
@@ -178,6 +183,13 @@ export function StudioFlowBuilder({
   const [newContainerModuleId, setNewContainerModuleId] = useState(modules[0]?.id || "");
   const [newContainerSlotCount, setNewContainerSlotCount] = useState(6);
   const [newContainerBatchPop, setNewContainerBatchPop] = useState(50);
+
+  // State untuk Edit Node / Blok Lego yang Diklik di Kanvas
+  const [editingNode, setEditingNode] = useState<Node<FlowNodeData> | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editTimerHours, setEditTimerHours] = useState(72);
+  const [editThresholdDays, setEditThresholdDays] = useState(7);
 
   const activeModule = useMemo(
     () => modules.find((m) => m.id === selectedModuleId) || modules[0],
@@ -224,7 +236,56 @@ export function StudioFlowBuilder({
     );
   }, [activeModule, setNodes, setEdges]);
 
-  const nodeTypes = useMemo(() => ({ legoNode: LegoBlockNode }), []);
+  // Handler ketika salah satu node di kanvas diklik
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    const legoNode = node as Node<FlowNodeData>;
+    setEditingNode(legoNode);
+    setEditLabel(legoNode.data.label || "");
+    setEditDesc(legoNode.data.description || "");
+    setEditTimerHours(legoNode.data.config?.timerHours || 72);
+    setEditThresholdDays(legoNode.data.config?.zeroYieldThresholdDays || 7);
+  }, []);
+
+  // Simpan hasil edit node ke daftar nodes kanvas
+  const handleSaveNodeEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNode) return;
+
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === editingNode.id) {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              label: editLabel.trim() || n.data.label,
+              description: editDesc.trim(),
+              config: {
+                ...n.data.config,
+                timerHours: editTimerHours,
+                zeroYieldThresholdDays: editThresholdDays,
+              },
+            },
+          };
+        }
+        return n;
+      })
+    );
+
+    setEditingNode(null);
+    setSaveNotice(`Blok "${editLabel}" diperbarui! Tekan Simpan Rakitan Flow untuk mematenkan.`);
+    setTimeout(() => setSaveNotice(null), 3500);
+  };
+
+  // Hapus node dari kanvas
+  const handleDeleteNode = () => {
+    if (!editingNode) return;
+    setNodes((nds) => nds.filter((n) => n.id !== editingNode.id));
+    setEdges((eds) => eds.filter((e) => e.source !== editingNode.id && e.target !== editingNode.id));
+    setEditingNode(null);
+    setSaveNotice(`Blok berhasil dihapus dari alur!`);
+    setTimeout(() => setSaveNotice(null), 3000);
+  };
 
   const onConnect = useCallback(
     (params: Connection) =>
@@ -739,7 +800,7 @@ export function StudioFlowBuilder({
           </div>
         </div>
 
-        {/* Canvas Diagram (As is) */}
+        {/* Canvas Diagram */}
         <div className="h-[460px] sm:h-[540px] w-full max-w-full overflow-hidden rounded-3xl border-2 border-slate-300 bg-slate-50 shadow-inner lg:col-span-8">
           <ReactFlow
             nodes={nodes}
@@ -747,6 +808,7 @@ export function StudioFlowBuilder({
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeClick={onNodeClick}
             nodeTypes={nodeTypes}
             fitView
           >
@@ -755,6 +817,123 @@ export function StudioFlowBuilder({
           </ReactFlow>
         </div>
       </div>
+
+      {/* MODAL EDIT BLOK LEGO YANG DIKLIK DI KANVAS */}
+      {editingNode && (
+        <div
+          onClick={() => setEditingNode(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveNodeEdit}
+            className="w-full max-w-md rounded-3xl border-3 border-emerald-700 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  EDIT BLOK: {editingNode.data.blockType}
+                </span>
+                <h3 className="text-xl font-black text-slate-900">
+                  Pengaturan Blok Alur
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingNode(null)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Judul / Label Blok
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Keterangan Singkat
+                </label>
+                <input
+                  type="text"
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-900"
+                />
+              </div>
+
+              {/* Setting khusus jika Blok AUTO_RULE */}
+              {editingNode.data.blockType === "AUTO_RULE" && (
+                <div className="rounded-2xl border-2 border-purple-300 bg-purple-50/70 p-3.5">
+                  <label className="block text-xs font-black text-purple-950">
+                    Ambang Batas Evaluasi (Threshold Hari):
+                  </label>
+                  <p className="text-[11px] font-bold text-purple-800 mt-0.5">
+                    Memicu kartu peringatan otomatis di Analisa jika mencapai hari ini.
+                  </p>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    required
+                    value={editThresholdDays}
+                    onChange={(e) => setEditThresholdDays(Number(e.target.value))}
+                    className="mt-2 w-full rounded-xl border-2 border-purple-400 bg-white px-3 py-2 text-base font-black text-purple-950"
+                  />
+                </div>
+              )}
+
+              {/* Setting khusus jika Blok TIMER_QUARANTINE */}
+              {editingNode.data.blockType === "TIMER_QUARANTINE" && (
+                <div className="rounded-2xl border-2 border-orange-300 bg-orange-50/70 p-3.5">
+                  <label className="block text-xs font-black text-orange-950">
+                    Durasi Hitung Mundur Timer (Jam):
+                  </label>
+                  <p className="text-[11px] font-bold text-orange-800 mt-0.5">
+                    Contoh: 72 Jam (3 Hari Puasa Lele) atau 48 Jam.
+                  </p>
+                  <input
+                    type="number"
+                    min={1}
+                    max={720}
+                    required
+                    value={editTimerHours}
+                    onChange={(e) => setEditTimerHours(Number(e.target.value))}
+                    className="mt-2 w-full rounded-xl border-2 border-orange-400 bg-white px-3 py-2 text-base font-black text-orange-950"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteNode}
+                className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-xs font-black text-rose-800 hover:bg-rose-100 active:scale-95"
+              >
+                Hapus Blok
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800 active:scale-95"
+              >
+                Terapkan Perubahan
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Admin Container Upgrade Section */}
       {cageSets.length > 0 && (
