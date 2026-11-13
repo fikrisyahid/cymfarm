@@ -31,7 +31,19 @@ export function AdminModularStudio() {
   const [harvestActionLabel, setHarvestActionLabel] = useState("Panen Telur / Hasil");
   const [harvestUnitLabel, setHarvestUnitLabel] = useState("Butir");
 
-  // Wadah Fisik Awal
+  // Modal Tambah Wadah Baru ke Modul Tertentu
+  const [showAddContainerModal, setShowAddContainerModal] = useState(false);
+  const [targetModuleForContainer, setTargetModuleForContainer] = useState<LocalFarmModule | null>(null);
+  const [newContainerName, setNewContainerName] = useState("");
+  const [newContainerCode, setNewContainerCode] = useState("");
+  const [newContainerCapacity, setNewContainerCapacity] = useState(100);
+
+  // Modal CRUD Kategori Modul Baru
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatIcon, setNewCatIcon] = useState("🍄");
+
+  // Wadah Fisik Awal saat buat modul baru
   const [containerName, setContainerName] = useState("");
   const [containerCode, setContainerCode] = useState("");
   const [containerCapacity, setContainerCapacity] = useState(100);
@@ -51,12 +63,95 @@ export function AdminModularStudio() {
     setShowModal(true);
   };
 
+  const handleOpenEditModule = (m: LocalFarmModule) => {
+    setEditingModuleId(m.id);
+    setModName(m.name);
+    setModCategory(m.category);
+    setTrackingMode(m.trackingMode);
+    setRoutineActionLabel(m.config.routineActionLabel);
+    setHarvestType(m.config.harvestType);
+    setHarvestActionLabel(m.config.harvestActionLabel);
+    setHarvestUnitLabel(m.config.harvestUnitLabel || "Butir");
+    setShowModal(true);
+  };
+
+  // Handler Tambah Wadah Baru ke Modul
+  const handleOpenAddContainer = (m: LocalFarmModule) => {
+    setTargetModuleForContainer(m);
+    const existingCount = (containers || []).filter((c) => c.moduleId === m.id).length;
+    setNewContainerName(`Wadah ${existingCount + 1}`);
+    setNewContainerCode(`WADAH-${existingCount + 1}`);
+    setNewContainerCapacity(100);
+    setShowAddContainerModal(true);
+  };
+
+  const handleSaveNewContainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetModuleForContainer || !newContainerName.trim() || !newContainerCode.trim()) return;
+
+    const cleanCode = newContainerCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    const contId = `cont-${cleanCode.toLowerCase()}-${Date.now().toString().slice(-4)}`;
+
+    const newCont: LocalContainer = {
+      id: contId,
+      moduleId: targetModuleForContainer.id,
+      name: newContainerName.trim(),
+      code: cleanCode,
+      capacity: Number(newContainerCapacity) || 1,
+      status: "ACTIVE",
+      sortOrder: (containers?.length || 0) + 1,
+      updatedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    };
+    await localDb.containers.put(newCont);
+
+    const newSubj: LocalSubject = {
+      id: `subj-${contId}`,
+      moduleId: targetModuleForContainer.id,
+      containerId: contId,
+      label: `${newContainerName.trim()} (Populasi Awal)`,
+      populationCount: Number(newContainerCapacity) || 1,
+      isActive: true,
+      updatedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    };
+    await localDb.subjects.put(newSubj);
+
+    await localDb.activityLogs.put({
+      id: `log-cont-crt-${Date.now()}`,
+      moduleId: targetModuleForContainer.id,
+      containerId: contId,
+      activityType: "CREATE",
+      quantity: Number(newContainerCapacity) || 1,
+      note: `Tambah wadah baru: ${newContainerName.trim()} (${cleanCode}) pada ${targetModuleForContainer.name}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    setShowAddContainerModal(false);
+  };
+
+  // Handler Buat Kategori Modul Baru
+  const handleSaveNewCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    const catId = `cat-${Date.now()}`;
+    await localDb.farmModuleCategories.put({
+      id: catId,
+      name: newCatName.trim(),
+      icon: newCatIcon || "🌾",
+    });
+    setModCategory(catId);
+    setNewCatName("");
+    setShowCatModal(false);
+  };
+
   const handleSaveModule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!modName.trim() || !containerName.trim() || !containerCode.trim()) return;
+    if (!modName.trim()) return;
+    if (!editingModuleId && (!containerName.trim() || !containerCode.trim())) return;
 
     const modId = editingModuleId || `mod-${Date.now()}`;
-    const cleanCode = containerCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
 
     const newModule: LocalFarmModule = {
       id: modId,
@@ -77,6 +172,7 @@ export function AdminModularStudio() {
 
     // Jika membuat modul baru, buatkan wadah fisik awal & subjek awalnya
     if (!editingModuleId) {
+      const cleanCode = containerCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
       const contId = `cont-${cleanCode.toLowerCase()}-${Date.now().toString().slice(-4)}`;
       const newCont: LocalContainer = {
         id: contId,
@@ -231,7 +327,21 @@ export function AdminModularStudio() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex gap-2 pt-3 border-t border-slate-100">
+                  <div className="mt-5 flex gap-2 pt-3 border-t border-slate-100 flex-wrap">
+                    <button
+                      onClick={() => handleOpenAddContainer(m)}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-700 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95"
+                    >
+                      <Plus className="h-4 w-4 text-emerald-700" />
+                      <span>+ Tambah Wadah</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditModule(m)}
+                      className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      <span>Edit Info</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteModule(m)}
                       className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 active:scale-95"
@@ -296,9 +406,18 @@ export function AdminModularStudio() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-slate-700">
-                    Pilih Kategori
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-black text-slate-700">
+                      Pilih Kategori
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCatModal(true)}
+                      className="text-xs font-black text-emerald-700 hover:underline"
+                    >
+                      + Buat Kategori Baru
+                    </button>
+                  </div>
                   <select
                     value={modCategory}
                     onChange={(e) => setModCategory(e.target.value)}
@@ -486,6 +605,177 @@ export function AdminModularStudio() {
                 className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white shadow-md hover:bg-emerald-800 active:scale-95 transition"
               >
                 Simpan Sistem Ternak
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: TAMBAH WADAH BARU */}
+      {showAddContainerModal && targetModuleForContainer && (
+        <div
+          onClick={() => setShowAddContainerModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveNewContainer}
+            className="w-full max-w-md rounded-3xl border-2 border-emerald-700 bg-white p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  + Tambah Wadah Baru
+                </h3>
+                <p className="text-xs font-bold text-slate-500 mt-0.5">
+                  Untuk sistem: {targetModuleForContainer.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddContainerModal(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-black text-slate-700">
+                  Nama Wadah Fisik *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newContainerName}
+                  onChange={(e) => setNewContainerName(e.target.value)}
+                  placeholder="Misal: Rak Jamur B / Kolam 2 / Kandang B"
+                  className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700">
+                  Kode QR Singkat *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newContainerCode}
+                  onChange={(e) => setNewContainerCode(e.target.value)}
+                  placeholder="Misal: RAK-B / KOLAM-2"
+                  className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600 uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700">
+                  Kapasitas / Populasi Awal
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={newContainerCapacity}
+                  onChange={(e) => setNewContainerCapacity(Number(e.target.value))}
+                  className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddContainerModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800"
+              >
+                Daftarkan Wadah
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: BUAT KATEGORI BARU */}
+      {showCatModal && (
+        <div
+          onClick={() => setShowCatModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveNewCategory}
+            className="w-full max-w-sm rounded-3xl border-2 border-emerald-700 bg-white p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <h3 className="text-xl font-black text-slate-900">
+                Buat Kategori Baru
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCatModal(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-slate-700">
+                Nama Kategori *
+              </label>
+              <input
+                type="text"
+                required
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="Misal: Kambing / Lebah Madu / Anggrek"
+                className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-slate-700">
+                Pilih Ikon Emoji
+              </label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["🍄", "🐝", "🐑", "🐐", "🐄", "🦆", "🐟", "🐓", "🌾", "🌿", "🌱", "🪵"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setNewCatIcon(emoji)}
+                    className={`h-10 w-10 rounded-xl text-xl flex items-center justify-center border-2 transition ${
+                      newCatIcon === emoji
+                        ? "border-emerald-700 bg-emerald-100 scale-105"
+                        : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCatModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800"
+              >
+                Simpan Kategori
               </button>
             </div>
           </form>
