@@ -169,7 +169,15 @@ export function StudioFlowBuilder({
     "BATCH"
   );
   const [showNewModal, setShowNewModal] = useState(false);
+  const [showNewContainerModal, setShowNewContainerModal] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+
+  // Form State untuk Tambah Area / Wadah Fisik Baru
+  const [newContainerName, setNewContainerName] = useState("");
+  const [newContainerCode, setNewContainerCode] = useState("");
+  const [newContainerModuleId, setNewContainerModuleId] = useState(modules[0]?.id || "");
+  const [newContainerSlotCount, setNewContainerSlotCount] = useState(6);
+  const [newContainerBatchPop, setNewContainerBatchPop] = useState(50);
 
   const activeModule = useMemo(
     () => modules.find((m) => m.id === selectedModuleId) || modules[0],
@@ -351,6 +359,79 @@ export function StudioFlowBuilder({
     setTimeout(() => setSaveNotice(null), 3000);
   };
 
+  // Buat Area / Wadah Fisik Baru untuk Modul Apa Pun
+  const handleCreateNewContainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newContainerName.trim() || !newContainerCode.trim()) return;
+
+    const mod = modules.find((m) => m.id === newContainerModuleId) || modules[0];
+    const cleanCode = newContainerCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    const containerId = `area-${cleanCode.toLowerCase()}-${Date.now().toString().slice(-4)}`;
+
+    const isIndividual = mod?.trackingMode === "INDIVIDUAL";
+
+    if (isIndividual) {
+      // Buat Set Wadah (Parent)
+      await localDb.containers.put({
+        id: containerId,
+        parentId: null,
+        moduleId: mod.id,
+        name: newContainerName.trim(),
+        code: cleanCode,
+        containerType: "CAGE_SET",
+        status: "ACTIVE",
+        sortOrder: containers.length + 1,
+      });
+
+      // Buat Slot-Slot Anaknya (Child Slots)
+      const childSlots: LocalContainer[] = [];
+      for (let s = 1; s <= newContainerSlotCount; s++) {
+        childSlots.push({
+          id: `${containerId}-slot-${s}`,
+          parentId: containerId,
+          moduleId: mod.id,
+          name: `${cleanCode} #${s}`,
+          code: `${cleanCode}-${s}`,
+          containerType: "CAGE_SLOT",
+          status: "VACANT",
+          sortOrder: s,
+        });
+      }
+      await localDb.containers.bulkPut(childSlots);
+    } else {
+      // Buat Wadah Komunal / Batch (POND / CUSTOM)
+      await localDb.containers.put({
+        id: containerId,
+        parentId: null,
+        moduleId: mod.id,
+        name: newContainerName.trim(),
+        code: cleanCode,
+        containerType: mod.category === "AQUACULTURE" ? "POND" : "CUSTOM",
+        status: "ACTIVE",
+        sortOrder: containers.length + 1,
+      });
+
+      // Masukkan populasi batch subjek
+      await localDb.subjects.put({
+        id: `subj-${containerId}`,
+        moduleId: mod.id,
+        containerId: containerId,
+        label: `${newContainerName.trim()} (Batch 1)`,
+        populationCount: newContainerBatchPop,
+        currentNodeId: mod.flowGraph.nodes[0]?.id || "node-1",
+        consecutiveZeroYieldDays: 0,
+        isRecommendedForCut: false,
+        isActive: true,
+      });
+    }
+
+    setSaveNotice(`Area baru "${newContainerName}" (${cleanCode}) berhasil didaftarkan!`);
+    setTimeout(() => setSaveNotice(null), 3000);
+    setNewContainerName("");
+    setNewContainerCode("");
+    setShowNewContainerModal(false);
+  };
+
   return (
     <div className="w-full max-w-full space-y-5 overflow-hidden">
       {/* Top Module Switcher & Create New Farm Module */}
@@ -380,12 +461,23 @@ export function StudioFlowBuilder({
             ))}
           </div>
 
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-700 bg-emerald-50 py-3 text-sm font-black text-emerald-900 hover:bg-emerald-100 active:scale-98"
-          >
-            <Sparkles className="h-4 w-4" /> + Buat Modul Baru
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-700 bg-emerald-50 py-3 text-sm font-black text-emerald-900 hover:bg-emerald-100 active:scale-98"
+            >
+              <Sparkles className="h-4 w-4" /> + Buat Modul Baru
+            </button>
+            <button
+              onClick={() => {
+                setNewContainerModuleId(activeModule?.id || modules[0]?.id || "");
+                setShowNewContainerModal(true);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-700 bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800 active:scale-98"
+            >
+              <Plus className="h-4 w-4" /> + Daftarkan Area / Wadah Fisik Baru
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-t border-slate-200 pt-3">
@@ -483,6 +575,119 @@ export function StudioFlowBuilder({
                 className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white"
               >
                 Buat Modul
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal: Create New Container/Area for Any Module */}
+      {showNewContainerModal && (
+        <div
+          onClick={() => setShowNewContainerModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleCreateNewContainer}
+            className="w-full max-w-lg rounded-3xl border-2 border-emerald-700 bg-white p-5 shadow-2xl"
+          >
+            <h3 className="text-xl font-black text-slate-900">
+              Daftarkan Area / Wadah Fisik Baru
+            </h3>
+            <p className="mt-1 text-xs font-bold text-slate-600">
+              Area ini akan langsung muncul di halaman Lapangan (QR / Lokasi) dan Analisa!
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Untuk Modul Apa?
+                </label>
+                <select
+                  value={newContainerModuleId}
+                  onChange={(e) => setNewContainerModuleId(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                >
+                  {modules.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.trackingMode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Nama Area / Wadah (Misal: Kandang Bebek A / Talang Pakcoy 2)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newContainerName}
+                  onChange={(e) => setNewContainerName(e.target.value)}
+                  placeholder="Nama lokasi fisik"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Kode Area Singkat (Misal: BEBEK-A / PAKCOY-2)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newContainerCode}
+                  onChange={(e) => setNewContainerCode(e.target.value)}
+                  placeholder="Kode huruf kapital"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900 uppercase"
+                />
+              </div>
+
+              {modules.find((m) => m.id === newContainerModuleId)?.trackingMode === "INDIVIDUAL" ? (
+                <div>
+                  <label className="block text-xs font-black text-slate-800">
+                    Jumlah Kotak / Slot Kandang di Set Ini
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={newContainerSlotCount}
+                    onChange={(e) => setNewContainerSlotCount(Number(e.target.value))}
+                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-black text-slate-800">
+                    Kapasitas / Populasi Awal Batch (Ekor / Tanaman)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={newContainerBatchPop}
+                    onChange={(e) => setNewContainerBatchPop(Number(e.target.value))}
+                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewContainerModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-800"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white"
+              >
+                Daftarkan Area
               </button>
             </div>
           </form>

@@ -11,6 +11,7 @@ import {
   Plus,
   X,
   ChevronRight,
+  Timer,
   CheckCircle2,
 } from "lucide-react";
 import {
@@ -18,11 +19,13 @@ import {
   type LocalActivityLog,
   type LocalContainer,
   type LocalFeedPurchase,
+  type LocalFarmModule,
   type LocalSubject,
 } from "@/lib/offline-db";
 import { toast } from "sonner";
 
 interface AnalyticsAndFeedViewProps {
+  modules?: LocalFarmModule[];
   containers: LocalContainer[];
   subjects: LocalSubject[];
   feedPurchases: LocalFeedPurchase[];
@@ -30,27 +33,23 @@ interface AnalyticsAndFeedViewProps {
 }
 
 export function AnalyticsAndFeedView({
+  modules = [],
   containers,
   subjects,
   feedPurchases,
   activityLogs,
 }: AnalyticsAndFeedViewProps) {
-  // Modal State: "AFKIR" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | null
-  const [activeModal, setActiveModal] = useState<
-    "AFKIR" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | null
-  >(null);
+  // Modal State: "AUTO_RULE_<modId>" | "TIMER_<modId>" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | null
+  const [activeModal, setActiveModal] = useState<string | null>(null);
 
   const [weightInput, setWeightInput] = useState<number>(25);
   const [priceInput, setPriceInput] = useState<number>(215000);
   const [notesInput, setNotesInput] = useState<string>("Beli 1 karung 25kg");
 
-  // 1. Data Ayam Aktif & Afkir
+  // Prediksi Pakan Karungan (Logistik)
   const activeChickens = subjects.filter(
     (s) => s.moduleId === "mod-ayam-petelur" && s.isActive
   );
-  const afkirChickens = activeChickens.filter((s) => s.isRecommendedForCut);
-
-  // 2. Data Prediksi Pakan
   const sortedPurchases = [...feedPurchases].sort(
     (a, b) =>
       new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()
@@ -89,96 +88,253 @@ export function AnalyticsAndFeedView({
     e.preventDefault();
     await localDb.feedPurchases.put({
       id: `feed-${Date.now()}`,
-      feedName: `Pakan Ayam (${weightInput} KG)`,
+      feedName: `Pakan (${weightInput} KG)`,
       weightKg: weightInput,
       priceIdr: priceInput,
       purchasedAt: new Date().toISOString(),
       notes: notesInput,
     });
-    toast.success(`Catatan beli pakan ${weightInput} KG berhasil disimpan!`);
+    toast.success(`Catatan beli ${weightInput} KG berhasil disimpan!`);
     setActiveModal(null);
   };
 
-  // Potong Ayam Afkir
-  const handleCutChicken = async (chicken: LocalSubject) => {
-    await localDb.subjects.update(chicken.id, {
+  // Eksekusi Terminasi / Potong / Panen Akhir Subjek
+  const handleTerminateSubject = async (
+    subject: LocalSubject,
+    actionLabel: string = "Diproses"
+  ) => {
+    await localDb.subjects.update(subject.id, {
       isActive: false,
     });
-    await localDb.containers.update(chicken.containerId, {
-      status: "VACANT",
-    });
+
+    const isSlot = containers.find(
+      (c) => c.id === subject.containerId && c.containerType === "CAGE_SLOT"
+    );
+    if (isSlot) {
+      await localDb.containers.update(subject.containerId, {
+        status: "VACANT",
+      });
+    }
+
     await localDb.activityLogs.put({
-      id: `log-cut-${Date.now()}`,
-      moduleId: chicken.moduleId,
-      containerId: chicken.containerId,
-      subjectId: chicken.id,
+      id: `log-term-${Date.now()}`,
+      moduleId: subject.moduleId,
+      containerId: subject.containerId,
+      subjectId: subject.id,
       activityType: "AFKIR_CUT",
-      quantity: 1,
-      note: `${chicken.label} dipotong (stop bertelur ${chicken.consecutiveZeroYieldDays} hari).`,
+      quantity: subject.populationCount,
+      note: `${subject.label} ${actionLabel}.`,
       performedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
-    toast.success(`${chicken.label} selesai dipotong! Kandang sekarang kosong.`);
+    toast.success(`${subject.label} berhasil ${actionLabel}!`);
   };
 
   return (
     <div className="w-full space-y-4">
       {/* ===================================================================
-          KARTU RINGKASAN 1: AYAM AFKIR / REKOMENDASI POTONG
+          1. DYNAMIC EVALUATION CARDS (Di-generate otomatis dari AUTO_RULE tiap modul!)
          =================================================================== */}
-      <div
-        className={`rounded-3xl border-3 p-5 shadow-sm transition ${
-          afkirChickens.length > 0
-            ? "border-rose-400 bg-rose-50/60"
-            : "border-slate-300 bg-white"
-        }`}
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`rounded-2xl p-3 ${
-                afkirChickens.length > 0
-                  ? "bg-rose-200 text-rose-900"
-                  : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              <TrendingDown className="h-7 w-7" />
-            </div>
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider text-slate-500">
-                PRODUKTIVITAS AYAM
-              </div>
-              <h3 className="text-2xl font-black text-slate-900">
-                {afkirChickens.length > 0
-                  ? `${afkirChickens.length} Ayam Siap Potong`
-                  : "Semua Ayam Produktif"}
-              </h3>
-            </div>
-          </div>
-        </div>
+      {modules.map((mod) => {
+        // Cek apakah modul ini punya blok AUTO_RULE
+        const autoRuleNode = mod.flowGraph.nodes.find(
+          (n) => n.data.blockType === "AUTO_RULE"
+        );
+        if (!autoRuleNode) return null;
 
-        <p className="mt-2 text-sm font-bold text-slate-600">
-          {afkirChickens.length > 0
-            ? "Ada ayam yang sudah tidak bertelur ≥ 7 hari berturut-turut."
-            : `Seluruh ${activeChickens.length} ekor ayam masih aktif bertelur normal.`}
-        </p>
+        const thresholdDays =
+          autoRuleNode.data.config?.zeroYieldThresholdDays || 7;
 
-        {afkirChickens.length > 0 && (
-          <button
-            onClick={() => setActiveModal("AFKIR")}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl bg-rose-700 px-5 py-3.5 text-base font-black text-white shadow-sm hover:bg-rose-800 active:scale-98"
+        // Cari subjek-subjek aktif di modul ini yang melewati threshold
+        const modSubjects = subjects.filter(
+          (s) => s.moduleId === mod.id && s.isActive
+        );
+        const flaggedSubjects = modSubjects.filter(
+          (s) => s.consecutiveZeroYieldDays >= thresholdDays || s.isRecommendedForCut
+        );
+
+        const hasFlags = flaggedSubjects.length > 0;
+        const modalKey = `AUTO_RULE_${mod.id}`;
+
+        return (
+          <div
+            key={mod.id}
+            className={`rounded-3xl border-3 p-5 shadow-sm transition ${
+              hasFlags ? "border-rose-400 bg-rose-50/60" : "border-slate-300 bg-white"
+            }`}
           >
-            <div className="flex items-center gap-2">
-              <Scissors className="h-5 w-5" />
-              <span>Lihat & Potong Ayam</span>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`rounded-2xl p-3 ${
+                    hasFlags ? "bg-rose-200 text-rose-900" : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  <TrendingDown className="h-7 w-7" />
+                </div>
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    ANALISA MODUL: {mod.name}
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900">
+                    {hasFlags
+                      ? `${flaggedSubjects.length} Perlu Tindakan (${autoRuleNode.data.label})`
+                      : "Semua Kondisi Normal"}
+                  </h3>
+                </div>
+              </div>
             </div>
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        )}
-      </div>
+
+            <p className="mt-2 text-sm font-bold text-slate-600">
+              {hasFlags
+                ? `Rule Aktif: Nilai evaluasi mencapai batas ≥ ${thresholdDays} hari.`
+                : `Total ${modSubjects.length} unit/subjek dalam status operasional baik.`}
+            </p>
+
+            {hasFlags && (
+              <button
+                onClick={() => setActiveModal(modalKey)}
+                className="mt-4 flex w-full items-center justify-between rounded-2xl bg-rose-700 px-5 py-3.5 text-base font-black text-white shadow-sm hover:bg-rose-800 active:scale-98"
+              >
+                <div className="flex items-center gap-2">
+                  <Scissors className="h-5 w-5" />
+                  <span>Lihat & Tindak Lanjut</span>
+                </div>
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
+
+            {/* Modal Detail untuk Modul Ini */}
+            {activeModal === modalKey && (
+              <div
+                onClick={() => setActiveModal(null)}
+                className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-2 backdrop-blur-sm"
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-w-lg rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col"
+                >
+                  <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">
+                        {mod.name} — Evaluasi
+                      </h3>
+                      <p className="text-xs font-bold text-slate-500">
+                        {autoRuleNode.data.description || `Mencapai batas ${thresholdDays} hari`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveModal(null)}
+                      className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
+                    {flaggedSubjects.map((sub) => {
+                      const container = containers.find((c) => c.id === sub.containerId);
+                      return (
+                        <div
+                          key={sub.id}
+                          className="flex items-center justify-between gap-3 rounded-2xl border-2 border-rose-300 bg-rose-50/70 p-4"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-black text-slate-900">
+                                {sub.label}
+                              </span>
+                              <span className="rounded-lg bg-white px-2 py-0.5 text-xs font-black text-emerald-800">
+                                {container?.name || "Wadah"}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-rose-800">
+                              <AlertTriangle className="h-4 w-4 shrink-0" />
+                              <span>{sub.consecutiveZeroYieldDays} hari evaluasi</span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleTerminateSubject(sub, "Dieksekusi / Dipotong")}
+                            className="flex items-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2.5 text-xs font-black text-white active:scale-95"
+                          >
+                            <Scissors className="h-4 w-4" /> Eksekusi
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* ===================================================================
-          KARTU RINGKASAN 2: STOK & PREDIKSI PAKAN
+          2. DYNAMIC TIMER / QUARANTINE CARDS (Di-generate otomatis jika modul ada TIMER_QUARANTINE!)
+         =================================================================== */}
+      {modules.map((mod) => {
+        const timerNode = mod.flowGraph.nodes.find(
+          (n) => n.data.blockType === "TIMER_QUARANTINE"
+        );
+        if (!timerNode) return null;
+
+        const timerSubjects = subjects.filter(
+          (s) => s.moduleId === mod.id && s.isActive && s.timerEndsAt
+        );
+        if (timerSubjects.length === 0) return null;
+
+        return (
+          <div
+            key={`timer-${mod.id}`}
+            className="rounded-3xl border-3 border-orange-300 bg-orange-50/60 p-5 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-orange-200 p-3 text-orange-950">
+                <Timer className="h-7 w-7" />
+              </div>
+              <div>
+                <div className="text-xs font-black uppercase tracking-wider text-orange-900">
+                  STATUS KARANTINA / TIMER: {mod.name}
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">
+                  {timerSubjects.length} Batch Sedang Berjalan
+                </h3>
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {timerSubjects.map((b) => {
+                const nowMs = Date.now();
+                const endMs = b.timerEndsAt ? new Date(b.timerEndsAt).getTime() : nowMs;
+                const remHours = Math.max(0, Math.ceil((endMs - nowMs) / (1000 * 60 * 60)));
+                const isReady = remHours === 0;
+
+                return (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between rounded-2xl bg-white p-3 border border-orange-200"
+                  >
+                    <div>
+                      <div className="font-black text-slate-900 text-sm">{b.label}</div>
+                      <div className="text-xs font-bold text-slate-500">
+                        {isReady ? "🟢 Timer Selesai" : `🔴 Sisa ~${remHours} Jam`}
+                      </div>
+                    </div>
+                    <span className="rounded-xl bg-orange-100 px-3 py-1 text-xs font-black text-orange-900">
+                      {b.populationCount} Ekor
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ===================================================================
+          3. KARTU STOK & PREDIKSI PAKAN / BAHAN
          =================================================================== */}
       <div className="rounded-3xl border-3 border-amber-300 bg-amber-50/50 p-5 shadow-sm">
         <div className="flex items-start justify-between">
@@ -188,7 +344,7 @@ export function AnalyticsAndFeedView({
             </div>
             <div>
               <div className="text-xs font-black uppercase tracking-wider text-amber-900">
-                PREDIKSI PAKAN (25 KG)
+                LOGISTIK & PAKAN TERAKHIR ({latestPurchase?.weightKg || 25} KG)
               </div>
               <h3 className="text-2xl font-black text-slate-900">
                 ~{estimatedRemainingDays} Hari Lagi
@@ -229,7 +385,7 @@ export function AnalyticsAndFeedView({
       </div>
 
       {/* ===================================================================
-          KARTU RINGKASAN 3: LOG KEGIATAN HARI INI
+          4. KARTU CATATAN AKTIVITAS LOG
          =================================================================== */}
       <div className="rounded-3xl border-3 border-slate-300 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
@@ -256,78 +412,7 @@ export function AnalyticsAndFeedView({
         </div>
       </div>
 
-      {/* ===================================================================
-          MODAL 1: DAFTAR AYAM AFKIR (POP-UP / DRAWER)
-         =================================================================== */}
-      {activeModal === "AFKIR" && (
-        <div
-          onClick={() => setActiveModal(null)}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-2 backdrop-blur-sm"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col"
-          >
-            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
-              <div>
-                <h3 className="text-xl font-black text-slate-900">
-                  Ayam Rekomendasi Potong
-                </h3>
-                <p className="text-xs font-bold text-slate-500">
-                  Sudah tidak bertelur ≥ 7 hari
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
-              {afkirChickens.map((chk) => {
-                const slot = containers.find((c) => c.id === chk.containerId);
-                const parentSet = containers.find(
-                  (c) => c.id === slot?.parentId
-                );
-                return (
-                  <div
-                    key={chk.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border-2 border-rose-300 bg-rose-50/70 p-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-black text-slate-900">
-                          {chk.label}
-                        </span>
-                        <span className="rounded-lg bg-white px-2 py-0.5 text-xs font-black text-emerald-800">
-                          {slot?.name} ({parentSet?.name})
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-rose-800">
-                        <AlertTriangle className="h-4 w-4 shrink-0" />
-                        <span>{chk.consecutiveZeroYieldDays} hari 0 telur</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleCutChicken(chk)}
-                      className="flex items-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2.5 text-xs font-black text-white active:scale-95"
-                    >
-                      <Scissors className="h-4 w-4" /> Potong
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===================================================================
-          MODAL 2: FORM CATAT BELI PAKAN BARU
-         =================================================================== */}
+      {/* MODAL: FORM BELI PAKAN */}
       {activeModal === "FEED_FORM" && (
         <div
           onClick={() => setActiveModal(null)}
@@ -340,7 +425,7 @@ export function AnalyticsAndFeedView({
           >
             <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
               <h3 className="text-xl font-black text-slate-900">
-                + Catat Beli Pakan
+                + Catat Beli Bahan / Pakan
               </h3>
               <button
                 type="button"
@@ -354,7 +439,7 @@ export function AnalyticsAndFeedView({
             <div className="mt-4 space-y-3">
               <div>
                 <label className="block text-sm font-black text-slate-800">
-                  Berat Karung (KG)
+                  Berat / Volume (KG / Liter)
                 </label>
                 <input
                   type="number"
@@ -386,7 +471,7 @@ export function AnalyticsAndFeedView({
                   type="text"
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
-                  placeholder="Misal: Stok karung baru"
+                  placeholder="Misal: Pakan karung baru"
                   className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-base font-bold text-slate-900"
                 />
               </div>
@@ -411,9 +496,7 @@ export function AnalyticsAndFeedView({
         </div>
       )}
 
-      {/* ===================================================================
-          MODAL 3: RIWAYAT PEMBELIAN PAKAN
-         =================================================================== */}
+      {/* MODAL: RIWAYAT PEMBELIAN */}
       {activeModal === "FEED_HISTORY" && (
         <div
           onClick={() => setActiveModal(null)}
@@ -425,7 +508,7 @@ export function AnalyticsAndFeedView({
           >
             <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
               <h3 className="text-xl font-black text-slate-900">
-                Riwayat Beli Pakan
+                Riwayat Beli Bahan & Pakan
               </h3>
               <button
                 onClick={() => setActiveModal(null)}
@@ -470,9 +553,7 @@ export function AnalyticsAndFeedView({
         </div>
       )}
 
-      {/* ===================================================================
-          MODAL 4: CATATAN LOG KEGIATAN
-         =================================================================== */}
+      {/* MODAL: CATATAN LOG AKTIVITAS */}
       {activeModal === "ACTIVITY_LOGS" && (
         <div
           onClick={() => setActiveModal(null)}

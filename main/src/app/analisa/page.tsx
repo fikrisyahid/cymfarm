@@ -13,6 +13,7 @@ export default function AnalisaPage() {
     ensureInitialFarmSeed().then(() => setSeeded(true));
   }, []);
 
+  const modules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
   const containers = useLiveQuery(
     () => localDb.containers.orderBy("sortOrder").toArray(),
     [],
@@ -42,6 +43,7 @@ export default function AnalisaPage() {
     <AppShell>
       <div className="p-4">
         <AnalyticsAndFeedView
+          modules={modules}
           containers={containers}
           subjects={subjects}
           feedPurchases={feedPurchases}

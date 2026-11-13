@@ -575,6 +575,53 @@ export function WorkerQrView({
               })}
           </div>
         )}
+
+        {/* VIEW D: JIKA WADAH CUSTOM / MODUL BARU LAINNYA (BATCH / TANAMAN / DLL) */}
+        {activeContainer?.containerType === "CUSTOM" && (
+          <div className="space-y-4 rounded-3xl border-2 border-slate-200 bg-slate-50 p-5">
+            {(() => {
+              const customBatch = subjects.find(
+                (s) => s.containerId === activeContainer.id && s.isActive
+              );
+
+              return (
+                <>
+                  <div className="rounded-2xl bg-white p-5 text-center shadow-sm">
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-500">
+                      STATUS AREA AKTIF
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 mt-1">
+                      {customBatch?.label || activeContainer.name}
+                    </div>
+                    <div className="mt-2 inline-block rounded-xl bg-emerald-100 px-4 py-1.5 text-lg font-black text-emerald-950">
+                      Populasi: {customBatch?.populationCount || 0} Unit
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={async () => {
+                        triggerToast(`Rutin harian untuk ${activeContainer.name} selesai!`);
+                      }}
+                      className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-4 text-base font-black text-white shadow active:scale-98"
+                    >
+                      <Utensils className="h-5 w-5" />
+                      <span>Selesai Rawat / Siram</span>
+                    </button>
+
+                    <button
+                      onClick={() => setMaintenanceSlotId(activeContainer.id)}
+                      className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white py-4 text-base font-black text-slate-800 hover:bg-slate-100 active:scale-98"
+                    >
+                      <Wrench className="h-5 w-5 text-rose-600" />
+                      <span>Lapor Kendala / Rusak</span>
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       {/* MODAL LAPOR RUSAK */}
