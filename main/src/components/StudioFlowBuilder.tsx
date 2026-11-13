@@ -27,11 +27,17 @@ import {
   Sparkles,
   Plus,
   X,
+  Edit2,
+  Trash2,
+  Copy,
+  Box,
+  Layers,
 } from "lucide-react";
 import {
   localDb,
   type LocalContainer,
   type LocalFarmModule,
+  type LocalSubject,
 } from "@/lib/offline-db";
 import type { LegoBlockType, FlowNodeData } from "@/db/schema";
 
@@ -167,11 +173,13 @@ const nodeTypes = {
 interface StudioFlowBuilderProps {
   modules: LocalFarmModule[];
   containers?: LocalContainer[];
+  subjects?: LocalSubject[];
 }
 
 export function StudioFlowBuilder({
   modules,
   containers = [],
+  subjects = [],
 }: StudioFlowBuilderProps) {
   const [selectedModuleId, setSelectedModuleId] = useState<string>(
     modules[0]?.id || "mod-ayam-petelur"
@@ -186,6 +194,22 @@ export function StudioFlowBuilder({
   const [showNewModal, setShowNewModal] = useState(false);
   const [showNewContainerModal, setShowNewContainerModal] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+
+  // State Modal Edit Info Modul
+  const [showEditModModal, setShowEditModModal] = useState(false);
+  const [editModName, setEditModName] = useState("");
+  const [editModCategory, setEditModCategory] = useState<
+    "LIVESTOCK" | "AQUACULTURE" | "PLANT"
+  >("PLANT");
+  const [editModDesc, setEditModDesc] = useState("");
+
+  // State Modal Edit Container
+  const [editingContainer, setEditingContainer] = useState<LocalContainer | null>(null);
+  const [editContainerName, setEditContainerName] = useState("");
+  const [editContainerCode, setEditContainerCode] = useState("");
+
+  // State Modal Konfirmasi Hapus Container
+  const [deleteConfirmContainer, setDeleteConfirmContainer] = useState<LocalContainer | null>(null);
 
   // Form State untuk Tambah Area / Wadah Fisik Baru
   const [newContainerName, setNewContainerName] = useState("");
@@ -443,6 +467,118 @@ export function StudioFlowBuilder({
     setShowNewModal(false);
   };
 
+  // Buka Modal Edit Info Modul
+  const handleOpenEditModule = () => {
+    if (!activeModule) return;
+    setEditModName(activeModule.name);
+    setEditModCategory(activeModule.category);
+    setEditModDesc(activeModule.description || "");
+    setShowEditModModal(true);
+  };
+
+  // Simpan Perubahan Info Modul
+  const handleSaveEditModule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeModule || !editModName.trim()) return;
+
+    await localDb.farmModules.update(activeModule.id, {
+      name: editModName.trim(),
+      category: editModCategory,
+      description: editModDesc.trim(),
+    });
+
+    await localDb.activityLogs.put({
+      id: `log-mod-upd-${Date.now()}`,
+      moduleId: activeModule.id,
+      containerId: "system",
+      activityType: "MODULE_FLOW_UPDATE",
+      quantity: 1,
+      note: `Perbarui informasi modul: ${editModName.trim()} (${editModCategory})`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    setShowEditModModal(false);
+    setSaveNotice(`Info modul "${editModName.trim()}" berhasil disimpan!`);
+    setTimeout(() => setSaveNotice(null), 3000);
+  };
+
+  // Gandakan Modul dengan Tracking Mode Lain
+  const handleDuplicateModule = (targetTracking: "INDIVIDUAL" | "BATCH") => {
+    if (!activeModule) return;
+    setNewModName(`${activeModule.name} (${targetTracking === "INDIVIDUAL" ? "Individu" : "Batch"})`);
+    setNewModCategory(activeModule.category);
+    setNewModTracking(targetTracking);
+    setShowEditModModal(false);
+    setShowNewModal(true);
+  };
+
+  // Buka Modal Edit Container
+  const handleOpenEditContainer = (c: LocalContainer) => {
+    setEditingContainer(c);
+    setEditContainerName(c.name);
+    setEditContainerCode(c.code);
+  };
+
+  // Simpan Perubahan Container
+  const handleSaveContainerEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingContainer || !editContainerName.trim() || !editContainerCode.trim()) return;
+
+    const cleanCode = editContainerCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+
+    await localDb.containers.update(editingContainer.id, {
+      name: editContainerName.trim(),
+      code: cleanCode,
+    });
+
+    await localDb.activityLogs.put({
+      id: `log-cont-upd-${Date.now()}`,
+      moduleId: editingContainer.moduleId,
+      containerId: editingContainer.id,
+      activityType: "CONTAINER_UPDATE",
+      quantity: 1,
+      note: `Ubah data wadah: ${editContainerName.trim()} (${cleanCode})`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    setEditingContainer(null);
+    setSaveNotice(`Wadah "${editContainerName}" berhasil diperbarui!`);
+    setTimeout(() => setSaveNotice(null), 3000);
+  };
+
+  // Eksekusi Hapus Container
+  const handleDeleteContainer = async () => {
+    if (!deleteConfirmContainer) return;
+    const target = deleteConfirmContainer;
+
+    // Jika target adalah CAGE_SET, hapus juga child slots-nya
+    if (target.containerType === "CAGE_SET") {
+      const childSlots = containers.filter((c) => c.parentId === target.id);
+      for (const slot of childSlots) {
+        await localDb.containers.delete(slot.id);
+      }
+    }
+
+    await localDb.containers.delete(target.id);
+
+    await localDb.activityLogs.put({
+      id: `log-cont-del-${Date.now()}`,
+      moduleId: target.moduleId,
+      containerId: target.id,
+      activityType: "CONTAINER_UPDATE",
+      quantity: 1,
+      note: `Hapus area/wadah fisik: ${target.name} (${target.code})`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    setDeleteConfirmContainer(null);
+    setSaveNotice(`Wadah "${target.name}" berhasil dihapus.`);
+    setTimeout(() => setSaveNotice(null), 3000);
+  };
+
   const cageSets = containers.filter((c) => c.containerType === "CAGE_SET");
 
   const handleAddSlotToSet = async (cageSet: LocalContainer) => {
@@ -575,9 +711,21 @@ export function StudioFlowBuilder({
       {/* Top Module Switcher & Create New Farm Module */}
       <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-300 bg-white p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-            Pilih Modul Alur:
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Pilih Modul Alur:
+            </span>
+            {activeModule && (
+              <button
+                type="button"
+                onClick={handleOpenEditModule}
+                className="flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 shadow-2xs"
+              >
+                <Edit2 className="h-3.5 w-3.5 text-emerald-700" />
+                <span>Edit Info Modul</span>
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {modules.map((m) => (
               <button
@@ -592,7 +740,7 @@ export function StudioFlowBuilder({
                 <span className={`inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
                   m.id === selectedModuleId ? "bg-black/20 text-white" : "bg-slate-200 text-slate-700"
                 }`}>
-                  {m.trackingMode}
+                  {m.trackingMode} • {m.category}
                 </span>
                 <span className="text-sm font-black leading-snug">{m.name}</span>
               </button>
@@ -1113,6 +1261,146 @@ export function StudioFlowBuilder({
         </div>
       )}
 
+      {/* SECTION: DAFTAR & CRUD CONTAINER / AREA FISIK PER MODUL */}
+      <div className="w-full rounded-3xl border-2 border-slate-300 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Box className="h-5 w-5 text-emerald-700" />
+              <h3 className="text-lg font-black text-slate-900">
+                Wadah & Area Fisik ({activeModule?.name || "Modul"})
+              </h3>
+            </div>
+            <p className="mt-0.5 text-xs font-bold text-slate-500">
+              Kelola area fisik (Kandang/Kolam/Bedeng) yang terhubung ke modul ini.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setNewContainerModuleId(activeModule?.id || modules[0]?.id || "");
+              setShowNewContainerModal(true);
+            }}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-black text-white hover:bg-emerald-800 active:scale-95 shadow-2xs"
+          >
+            <Plus className="h-4 w-4" />
+            <span>+ Wadah Baru</span>
+          </button>
+        </div>
+
+        {(() => {
+          // Filter container induk/utama milik modul ini
+          const moduleContainers = containers.filter(
+            (c) =>
+              c.moduleId === activeModule?.id &&
+              c.containerType !== "CAGE_SLOT"
+          );
+
+          if (moduleContainers.length === 0) {
+            return (
+              <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-400">
+                <Box className="mx-auto h-10 w-10 text-slate-300 mb-2" />
+                <p className="text-sm font-black text-slate-700">
+                  Belum ada wadah fisik untuk modul ini
+                </p>
+                <p className="text-xs font-bold text-slate-400 mt-1">
+                  Klik tombol &ldquo;+ Wadah Baru&rdquo; untuk mendaftarkan area pertama.
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {moduleContainers.map((container) => {
+                const childCount = containers.filter(
+                  (c) => c.parentId === container.id
+                ).length;
+                const occupantsCount = subjects.filter(
+                  (s) =>
+                    (s.containerId === container.id ||
+                      containers.some(
+                        (c) => c.parentId === container.id && c.id === s.containerId
+                      )) &&
+                    s.isActive
+                ).length;
+
+                return (
+                  <div
+                    key={container.id}
+                    className="flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 hover:border-emerald-600 transition shadow-2xs"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="rounded-lg bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-900 border border-emerald-300">
+                            {container.containerType}
+                          </span>
+                          <h4 className="text-base font-black text-slate-900 mt-1">
+                            {container.name}
+                          </h4>
+                          <span className="font-mono text-xs font-bold text-slate-500">
+                            Kode: {container.code}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ${
+                            container.status === "ACTIVE"
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                          }`}
+                        >
+                          {container.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-3 text-xs font-bold text-slate-600">
+                        {container.containerType === "CAGE_SET" ? (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <Layers className="h-3.5 w-3.5 text-slate-400" />
+                              <span>{childCount} Slot Kandang</span>
+                            </div>
+                            <div className="text-emerald-700 font-black">
+                              • {occupantsCount} Terisi
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Box className="h-3.5 w-3.5 text-slate-400" />
+                            <span>Wadah Komunal (Batch)</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-2 border-t border-slate-200 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditContainer(container)}
+                        className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white py-2 text-xs font-black text-slate-800 hover:bg-slate-100 active:scale-95"
+                      >
+                        <Edit2 className="h-3.5 w-3.5 text-amber-600" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmContainer(container)}
+                        className="flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-800 hover:bg-rose-100 active:scale-95"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
+
       {/* Admin Container Upgrade Section */}
       {cageSets.length > 0 && (
         <div className="w-full rounded-3xl border-2 border-slate-300 bg-white p-4 sm:p-5 shadow-sm">
@@ -1133,6 +1421,258 @@ export function StudioFlowBuilder({
                 <span>+1 Slot ke {cs.name}</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Info Modul */}
+      {showEditModModal && activeModule && (
+        <div
+          onClick={() => setShowEditModModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveEditModule}
+            className="w-full max-w-lg rounded-3xl border-2 border-emerald-700 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  PENGATURAN MODUL
+                </span>
+                <h3 className="text-xl font-black text-slate-900">
+                  Edit Info Modul
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModModal(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3.5">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Nama Modul *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editModName}
+                  onChange={(e) => setEditModName(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Kategori
+                </label>
+                <select
+                  value={editModCategory}
+                  onChange={(e) =>
+                    setEditModCategory(
+                      e.target.value as "LIVESTOCK" | "AQUACULTURE" | "PLANT"
+                    )
+                  }
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                >
+                  <option value="LIVESTOCK">🐓 Peternakan</option>
+                  <option value="AQUACULTURE">🐟 Perikanan</option>
+                  <option value="PLANT">🌱 Tanaman</option>
+                </select>
+              </div>
+
+              {/* Mode Tracking: Read-Only Locked dengan Info Transparan */}
+              <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    Mode Tracking:
+                  </span>
+                  <span className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-black text-white">
+                    🔒 {activeModule.trackingMode}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs font-bold text-slate-500 leading-relaxed">
+                  Mode tracking dikunci agar struktur slot kandang dan riwayat panen masa lalu tidak rusak.
+                </p>
+
+                <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-600">
+                    Ingin mode {activeModule.trackingMode === "INDIVIDUAL" ? "Batch" : "Individu"}?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDuplicateModule(
+                        activeModule.trackingMode === "INDIVIDUAL" ? "BATCH" : "INDIVIDUAL"
+                      )
+                    }
+                    className="flex items-center gap-1 rounded-xl bg-white border border-slate-300 px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-50 active:scale-95 shadow-2xs"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Gandakan Modul</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Keterangan Singkat
+                </label>
+                <input
+                  type="text"
+                  value={editModDesc}
+                  onChange={(e) => setEditModDesc(e.target.value)}
+                  placeholder="Misal: Modul produksi telur keluarga"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEditModModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800 active:scale-95"
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal: Edit Container (Nama & Kode) */}
+      {editingContainer && (
+        <div
+          onClick={() => setEditingContainer(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveContainerEdit}
+            className="w-full max-w-md rounded-3xl border-3 border-emerald-700 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  EDIT WADAH / AREA
+                </span>
+                <h3 className="text-xl font-black text-slate-900">
+                  Ubah Data Area Fisik
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingContainer(null)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3.5">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Nama Area / Wadah *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editContainerName}
+                  onChange={(e) => setEditContainerName(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Kode QR / Singkat *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editContainerCode}
+                  onChange={(e) => setEditContainerCode(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 uppercase focus:border-emerald-600 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingContainer(null)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800 active:scale-95"
+              >
+                Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal: Konfirmasi Hapus Container */}
+      {deleteConfirmContainer && (
+        <div
+          onClick={() => setDeleteConfirmContainer(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl border-3 border-rose-500 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 text-rose-700">
+              <AlertTriangle className="h-8 w-8 shrink-0" />
+              <h3 className="text-xl font-black text-slate-900">
+                Hapus Area Fisik?
+              </h3>
+            </div>
+
+            <p className="mt-3 text-sm font-bold text-slate-600">
+              Apakah Anda yakin ingin menghapus{" "}
+              <strong className="text-slate-900">
+                {deleteConfirmContainer.name} ({deleteConfirmContainer.code})
+              </strong>
+              ?
+              {deleteConfirmContainer.containerType === "CAGE_SET" && (
+                <span className="block mt-1 text-xs text-rose-700 font-bold">
+                  ⚠️ Peringatan: Seluruh slot anak di dalam set ini juga akan dihapus.
+                </span>
+              )}
+            </p>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDeleteConfirmContainer(null)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteContainer}
+                className="flex-1 rounded-2xl bg-rose-700 py-3 text-sm font-black text-white active:scale-95 hover:bg-rose-800"
+              >
+                Ya, Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}

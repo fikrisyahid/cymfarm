@@ -19,6 +19,7 @@ export default function AdminPage() {
     [],
     []
   );
+  const subjects = useLiveQuery(() => localDb.subjects.toArray(), [], []);
 
   if (!seeded) {
     return (
@@ -31,7 +32,11 @@ export default function AdminPage() {
   return (
     <AppShell>
       <div className="p-4">
-        <StudioFlowBuilder modules={modules} containers={containers} />
+        <StudioFlowBuilder
+          modules={modules || []}
+          containers={containers || []}
+          subjects={subjects || []}
+        />
       </div>
     </AppShell>
   );
