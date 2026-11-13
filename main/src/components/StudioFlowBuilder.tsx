@@ -32,6 +32,8 @@ import {
   Copy,
   Box,
   Layers,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import {
   localDb,
@@ -852,45 +854,99 @@ export function StudioFlowBuilder({
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Modern Category Selector */}
                 <div>
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-black text-slate-800">
-                      Kategori
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                      Kategori Modul
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowCreateModCatModal(true)}
-                      className="text-[11px] font-black text-emerald-700 hover:underline"
+                      className="text-xs font-black text-emerald-700 hover:underline"
                     >
                       + Buat Baru
                     </button>
                   </div>
-                  <select
-                    value={newModCategory}
-                    onChange={(e) => setNewModCategory(e.target.value)}
-                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
-                  >
-                    {activeModuleCategories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.icon} {c.name}
-                      </option>
-                    ))}
-                  </select>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {activeModuleCategories.map((c) => {
+                      const isSelected = newModCategory === c.id;
+                      return (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => setNewModCategory(c.id)}
+                          className={`flex items-center gap-2 rounded-2xl border-2 p-2.5 text-left transition active:scale-95 ${
+                            isSelected
+                              ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20"
+                              : "border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300"
+                          }`}
+                        >
+                          <span className="text-xl shrink-0">{c.icon}</span>
+                          <span
+                            className={`text-xs font-black truncate leading-tight ${
+                              isSelected ? "text-emerald-950" : "text-slate-800"
+                            }`}
+                          >
+                            {c.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Modern Tracking Mode Selector */}
                 <div>
-                  <label className="block text-xs font-black text-slate-800">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
                     Mode Tracking
                   </label>
-                  <select
-                    value={newModTracking}
-                    onChange={(e) =>
-                      setNewModTracking(e.target.value as "INDIVIDUAL" | "BATCH")
-                    }
-                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
-                  >
-                    <option value="BATCH">Batch (Kolam/Bedeng)</option>
-                    <option value="INDIVIDUAL">Individual (1 Hewan)</option>
-                  </select>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewModTracking("BATCH")}
+                      className={`flex items-center justify-between rounded-2xl border-2 p-3 text-left transition active:scale-95 ${
+                        newModTracking === "BATCH"
+                          ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20"
+                          : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                      }`}
+                    >
+                      <div>
+                        <div className="text-sm font-black text-slate-900">
+                          📦 Batch (Komunal)
+                        </div>
+                        <div className="text-[11px] font-bold text-slate-500">
+                          Kolam lele, bedeng sayur, maggot
+                        </div>
+                      </div>
+                      {newModTracking === "BATCH" && (
+                        <Check className="h-5 w-5 text-emerald-700 shrink-0" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNewModTracking("INDIVIDUAL")}
+                      className={`flex items-center justify-between rounded-2xl border-2 p-3 text-left transition active:scale-95 ${
+                        newModTracking === "INDIVIDUAL"
+                          ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20"
+                          : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                      }`}
+                    >
+                      <div>
+                        <div className="text-sm font-black text-slate-900">
+                          🐓 Individual (Per-Slot)
+                        </div>
+                        <div className="text-[11px] font-bold text-slate-500">
+                          Ayam baterai, kambing, sapi
+                        </div>
+                      </div>
+                      {newModTracking === "INDIVIDUAL" && (
+                        <Check className="h-5 w-5 text-emerald-700 shrink-0" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1515,29 +1571,44 @@ export function StudioFlowBuilder({
               </div>
 
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                    Kategori
+                    Kategori Modul
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowCreateModCatModal(true)}
-                    className="text-[11px] font-black text-emerald-700 hover:underline"
+                    className="text-xs font-black text-emerald-700 hover:underline"
                   >
                     + Buat Baru
                   </button>
                 </div>
-                <select
-                  value={editModCategory}
-                  onChange={(e) => setEditModCategory(e.target.value)}
-                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
-                >
-                  {activeModuleCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  {activeModuleCategories.map((c) => {
+                    const isSelected = editModCategory === c.id;
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => setEditModCategory(c.id)}
+                        className={`flex items-center gap-2 rounded-2xl border-2 p-2.5 text-left transition active:scale-95 ${
+                          isSelected
+                            ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20"
+                            : "border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="text-xl shrink-0">{c.icon}</span>
+                        <span
+                          className={`text-xs font-black truncate leading-tight ${
+                            isSelected ? "text-emerald-950" : "text-slate-800"
+                          }`}
+                        >
+                          {c.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Mode Tracking: Read-Only Locked dengan Info Transparan */}
