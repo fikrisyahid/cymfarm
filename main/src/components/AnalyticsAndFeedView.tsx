@@ -42,9 +42,13 @@ export function AnalyticsAndFeedView({
   // Modal State: "AUTO_RULE_<modId>" | "TIMER_<modId>" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | null
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
+  // Form State untuk Tambah / Edit Pakan
+  const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
   const [weightInput, setWeightInput] = useState<number>(25);
   const [priceInput, setPriceInput] = useState<number>(215000);
+  const [feedNameInput, setFeedNameInput] = useState<string>("Pakan Ayam");
   const [notesInput, setNotesInput] = useState<string>("Beli 1 karung 25kg");
+  const [purchasedDateInput, setPurchasedDateInput] = useState<string>(() => new Date().toISOString().split("T")[0]);
 
   // Prediksi Pakan Karungan (Logistik)
   const activeChickens = subjects.filter(
@@ -83,18 +87,43 @@ export function AnalyticsAndFeedView({
       )
     : new Date();
 
-  // Simpan Beli Pakan
-  const handleAddFeedPurchase = async (e: React.FormEvent) => {
+  // Buka Form Edit Pakan dari Riwayat
+  const handleOpenEditFeed = (fp: LocalFeedPurchase) => {
+    setEditingFeedId(fp.id);
+    setFeedNameInput(fp.feedName);
+    setWeightInput(fp.weightKg);
+    setPriceInput(fp.priceIdr || 0);
+    setNotesInput(fp.notes || "");
+    setPurchasedDateInput(fp.purchasedAt ? fp.purchasedAt.split("T")[0] : new Date().toISOString().split("T")[0]);
+    setActiveModal("FEED_FORM");
+  };
+
+  // Simpan Beli Pakan (Tambah Baru atau Update Edit)
+  const handleSaveFeedPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    await localDb.feedPurchases.put({
-      id: `feed-${Date.now()}`,
-      feedName: `Pakan (${weightInput} KG)`,
-      weightKg: weightInput,
-      priceIdr: priceInput,
-      purchasedAt: new Date().toISOString(),
-      notes: notesInput,
-    });
-    toast.success(`Catatan beli ${weightInput} KG berhasil disimpan!`);
+    const purchasedAtIso = new Date(`${purchasedDateInput}T08:00:00`).toISOString();
+
+    if (editingFeedId) {
+      await localDb.feedPurchases.update(editingFeedId, {
+        feedName: feedNameInput,
+        weightKg: weightInput,
+        priceIdr: priceInput,
+        purchasedAt: purchasedAtIso,
+        notes: notesInput,
+      });
+      toast.success(`Riwayat pakan berhasil diperbarui!`);
+    } else {
+      await localDb.feedPurchases.put({
+        id: `feed-${Date.now()}`,
+        feedName: feedNameInput || `Pakan (${weightInput} KG)`,
+        weightKg: weightInput,
+        priceIdr: priceInput,
+        purchasedAt: purchasedAtIso,
+        notes: notesInput,
+      });
+      toast.success(`Catatan beli ${weightInput} KG berhasil disimpan!`);
+    }
+    setEditingFeedId(null);
     setActiveModal(null);
   };
 
@@ -367,7 +396,15 @@ export function AnalyticsAndFeedView({
 
         <div className="mt-4 grid grid-cols-2 gap-2.5">
           <button
-            onClick={() => setActiveModal("FEED_FORM")}
+            onClick={() => {
+              setEditingFeedId(null);
+              setFeedNameInput("Pakan Ayam");
+              setWeightInput(25);
+              setPriceInput(215000);
+              setNotesInput("Beli 1 karung 25kg");
+              setPurchasedDateInput(new Date().toISOString().split("T")[0]);
+              setActiveModal("FEED_FORM");
+            }}
             className="flex items-center justify-center gap-1.5 rounded-2xl bg-amber-500 py-3.5 text-sm font-black text-slate-950 shadow-sm hover:bg-amber-400 active:scale-98"
           >
             <Plus className="h-4 w-4" />
@@ -412,24 +449,30 @@ export function AnalyticsAndFeedView({
         </div>
       </div>
 
-      {/* MODAL: FORM BELI PAKAN */}
+      {/* MODAL: FORM BELI PAKAN (TAMBAH / EDIT) */}
       {activeModal === "FEED_FORM" && (
         <div
-          onClick={() => setActiveModal(null)}
+          onClick={() => {
+            setEditingFeedId(null);
+            setActiveModal(null);
+          }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
         >
           <form
             onClick={(e) => e.stopPropagation()}
-            onSubmit={handleAddFeedPurchase}
+            onSubmit={handleSaveFeedPurchase}
             className="w-full max-w-md rounded-3xl border-3 border-amber-400 bg-white p-5 shadow-2xl"
           >
             <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
               <h3 className="text-xl font-black text-slate-900">
-                + Catat Beli Bahan / Pakan
+                {editingFeedId ? "✏️ Edit Riwayat Pakan" : "+ Catat Beli Bahan / Pakan"}
               </h3>
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
+                onClick={() => {
+                  setEditingFeedId(null);
+                  setActiveModal(null);
+                }}
                 className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
               >
                 <X className="h-6 w-6" />
@@ -438,33 +481,62 @@ export function AnalyticsAndFeedView({
 
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-sm font-black text-slate-800">
-                  Berat / Volume (KG / Liter)
+                <label className="block text-xs font-black text-slate-800">
+                  Nama Pakan / Bahan
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   required
-                  min={1}
-                  value={weightInput}
-                  onChange={(e) => setWeightInput(Number(e.target.value))}
-                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-lg font-black text-slate-900"
+                  value={feedNameInput}
+                  onChange={(e) => setFeedNameInput(e.target.value)}
+                  placeholder="Misal: Pakan Ayam Petelur"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-slate-800">
+                    Berat / Vol (KG)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(Number(e.target.value))}
+                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-black text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-800">
+                    Harga Beli (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    value={priceInput}
+                    onChange={(e) => setPriceInput(Number(e.target.value))}
+                    className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-black text-slate-800">
-                  Harga Beli (Rp - Opsional)
+                <label className="block text-xs font-black text-slate-800">
+                  Tanggal Beli
                 </label>
                 <input
-                  type="number"
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(Number(e.target.value))}
-                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-base font-bold text-slate-900"
+                  type="date"
+                  required
+                  value={purchasedDateInput}
+                  onChange={(e) => setPurchasedDateInput(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-black text-slate-800">
+                <label className="block text-xs font-black text-slate-800">
                   Catatan
                 </label>
                 <input
@@ -472,7 +544,7 @@ export function AnalyticsAndFeedView({
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
                   placeholder="Misal: Pakan karung baru"
-                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-base font-bold text-slate-900"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
                 />
               </div>
             </div>
@@ -480,16 +552,19 @@ export function AnalyticsAndFeedView({
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
-                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3.5 text-base font-black text-slate-700"
+                onClick={() => {
+                  setEditingFeedId(null);
+                  setActiveModal(null);
+                }}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-base font-black text-slate-700"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-2xl bg-amber-500 py-3.5 text-base font-black text-slate-950 active:scale-95"
+                className="flex-1 rounded-2xl bg-amber-500 py-3 text-base font-black text-slate-950 active:scale-95"
               >
-                Simpan
+                {editingFeedId ? "Simpan Perubahan" : "Simpan Baru"}
               </button>
             </div>
           </form>
@@ -522,29 +597,38 @@ export function AnalyticsAndFeedView({
               {sortedPurchases.map((fp) => (
                 <div
                   key={fp.id}
-                  className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-slate-50 p-3.5"
+                  className="flex items-center justify-between rounded-2xl border-2 border-slate-200 bg-slate-50 p-3.5 gap-2"
                 >
-                  <div>
-                    <div className="text-base font-black text-slate-900">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-base font-black text-slate-900 truncate">
                       {fp.feedName} ({fp.weightKg} KG)
                     </div>
-                    <div className="text-xs font-bold text-slate-500">
+                    <div className="text-xs font-bold text-slate-500 truncate">
                       {fp.notes || "-"}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs font-black text-emerald-800">
-                      {new Date(fp.purchasedAt).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </div>
-                    {fp.priceIdr && (
-                      <div className="text-xs font-bold text-slate-500">
-                        Rp {fp.priceIdr.toLocaleString("id-ID")}
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <div className="text-xs font-black text-emerald-800">
+                        {new Date(fp.purchasedAt).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </div>
-                    )}
+                      {fp.priceIdr ? (
+                        <div className="text-xs font-bold text-slate-500">
+                          Rp {fp.priceIdr.toLocaleString("id-ID")}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <button
+                      onClick={() => handleOpenEditFeed(fp)}
+                      className="rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-black text-amber-900 hover:bg-amber-50 active:scale-95 shadow-xs"
+                    >
+                      Edit
+                    </button>
                   </div>
                 </div>
               ))}
