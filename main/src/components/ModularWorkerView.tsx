@@ -374,7 +374,7 @@ export function ModularWorkerView({
 
   if (!currentContainer) {
     return (
-      <div className="mx-auto max-w-lg p-6 text-center">
+      <div className="w-full p-6 text-center">
         <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-12">
           <h3 className="text-xl font-black text-slate-800">Tidak Ada Area Terdaftar</h3>
           <p className="mt-2 text-xs font-bold text-slate-500">
@@ -386,7 +386,7 @@ export function ModularWorkerView({
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 pb-20">
+    <div className="w-full space-y-4 pb-20">
       {/* 1. CAROUSEL NAVIGASI LOKASI / WADAH */}
       <div className="flex items-center justify-between gap-2 rounded-3xl border-2 border-slate-300 bg-white p-3 shadow-xs">
         <button
@@ -473,65 +473,68 @@ export function ModularWorkerView({
         </div>
       </div>
 
-      {/* 3. TOMBOL RAKSASA #1: PERAWATAN HARIAN */}
-      <button
-        onClick={handleRoutineAction}
-        className={`flex min-h-[104px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
-          isRoutineDoneToday
-            ? "border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
-            : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-        }`}
-      >
-        <div className="flex items-center gap-2 text-xl font-black">
-          {isRoutineDoneToday ? (
-            <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-          ) : (
-            <Utensils className="h-7 w-7" />
-          )}
-          <span>{currentModule?.config.routineActionLabel || "Perawatan Harian"}</span>
-        </div>
-        <div className="text-xs font-bold opacity-90">
-          {isRoutineDoneToday ? (
-            <span className="inline-flex items-center gap-1.5 font-black text-emerald-900">
-              <span>Sudah {routineCountToday}x hari ini</span>
-              <span>•</span>
-              <span>Terakhir: {lastRoutineTimeStr} WIB</span>
-              <span className="text-[10px] font-normal opacity-75">(Tap untuk tambah lagi)</span>
-            </span>
-          ) : (
-            <span>Belum dilakukan hari ini — Tap tombol ini</span>
-          )}
-        </div>
-      </button>
+      {/* 3 & 4. DUA TOMBOL UTAMA LAPANGAN (STRETCH / DUA KOLOM DI TABLET/DESKTOP) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* TOMBOL #1: PERAWATAN HARIAN */}
+        <button
+          onClick={handleRoutineAction}
+          className={`flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
+            isRoutineDoneToday
+              ? "border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
+              : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xl font-black">
+            {isRoutineDoneToday ? (
+              <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+            ) : (
+              <Utensils className="h-7 w-7" />
+            )}
+            <span>{currentModule?.config.routineActionLabel || "Perawatan Harian"}</span>
+          </div>
+          <div className="text-xs font-bold opacity-90">
+            {isRoutineDoneToday ? (
+              <span className="inline-flex items-center gap-1.5 font-black text-emerald-900">
+                <span>Sudah {routineCountToday}x hari ini</span>
+                <span>•</span>
+                <span>Terakhir: {lastRoutineTimeStr} WIB</span>
+                <span className="text-[10px] font-normal opacity-75">(Tap untuk tambah lagi)</span>
+              </span>
+            ) : (
+              <span>Belum dilakukan hari ini — Tap tombol ini</span>
+            )}
+          </div>
+        </button>
 
-      {/* 4. TOMBOL RAKSASA #2: PANEN / HASIL */}
-      <button
-        onClick={() => setShowHarvestModal(true)}
-        className="flex min-h-[104px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 border-amber-500 bg-amber-400 p-5 text-center text-slate-950 transition active:scale-98 shadow-md hover:bg-amber-300"
-      >
-        <div className="flex items-center gap-2 text-xl font-black">
-          <Scissors className="h-7 w-7" />
-          <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
-        </div>
-        <div className="text-xs font-bold text-slate-900 opacity-90">
-          {isHarvestDoneToday ? (
-            <span className="inline-flex items-center gap-1.5 font-black">
-              <span>Sudah {harvestCountToday}x</span>
-              {currentModule?.config.harvestType === "RECURRING" && (
-                <span>(Total: {totalHarvestQtyToday} {currentModule?.config.harvestUnitLabel || "Unit"})</span>
-              )}
-              <span>•</span>
-              <span>Terakhir: {lastHarvestTimeStr} WIB</span>
-            </span>
-          ) : (
-            <span>
-              {currentModule?.config.harvestType === "RECURRING"
-                ? `Belum panen hari ini (${currentModule?.config.harvestUnitLabel || "Unit"})`
-                : "Panen total sekaligus (Kosongkan wadah)"}
-            </span>
-          )}
-        </div>
-      </button>
+        {/* TOMBOL #2: PANEN / HASIL */}
+        <button
+          onClick={() => setShowHarvestModal(true)}
+          className="flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 border-amber-500 bg-amber-400 p-5 text-center text-slate-950 transition active:scale-98 shadow-md hover:bg-amber-300"
+        >
+          <div className="flex items-center gap-2 text-xl font-black">
+            <Scissors className="h-7 w-7" />
+            <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
+          </div>
+          <div className="text-xs font-bold text-slate-900 opacity-90">
+            {isHarvestDoneToday ? (
+              <span className="inline-flex items-center gap-1.5 font-black">
+                <span>Sudah {harvestCountToday}x</span>
+                {currentModule?.config.harvestType === "RECURRING" && (
+                  <span>(Total: {totalHarvestQtyToday} {currentModule?.config.harvestUnitLabel || "Unit"})</span>
+                )}
+                <span>•</span>
+                <span>Terakhir: {lastHarvestTimeStr} WIB</span>
+              </span>
+            ) : (
+              <span>
+                {currentModule?.config.harvestType === "RECURRING"
+                  ? `Belum panen hari ini (${currentModule?.config.harvestUnitLabel || "Unit"})`
+                  : "Panen total sekaligus (Kosongkan wadah)"}
+              </span>
+            )}
+          </div>
+        </button>
+      </div>
 
       {/* 5. LAPOR KENDALA / RUSAK */}
       <div className="pt-2">

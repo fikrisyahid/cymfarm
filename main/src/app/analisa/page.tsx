@@ -75,7 +75,7 @@ export default function AnalisaPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-lg space-y-4 pb-20">
+      <div className="w-full space-y-4 pb-20">
         {/* Header */}
         <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-xs">
           <div className="flex items-center gap-2">

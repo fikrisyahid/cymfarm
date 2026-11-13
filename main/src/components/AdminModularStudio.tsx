@@ -242,7 +242,7 @@ export function AdminModularStudio() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-20">
+    <div className="w-full space-y-6 pb-20">
       {/* Header Studio */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl border-2 border-slate-300 bg-white p-5 sm:p-6 shadow-sm">
         <div>

@@ -99,8 +99,8 @@ export function AppShell({
         </button>
       </header>
 
-      {/* 2. MAIN CONTENT */}
-      <main className="p-4 sm:p-6 pb-24 max-w-4xl mx-auto">{children}</main>
+      {/* 2. MAIN CONTENT (STRETCH FOR TABLET & DESKTOP) */}
+      <main className="p-4 sm:p-6 lg:p-8 pb-24 w-full max-w-7xl mx-auto">{children}</main>
 
       {/* 3. BOTTOM BAR PATEN */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white shadow-lg">
