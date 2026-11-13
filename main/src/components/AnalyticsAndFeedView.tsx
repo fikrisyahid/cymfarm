@@ -122,7 +122,7 @@ export function AnalyticsAndFeedView({
   };
 
   return (
-    <div className="mx-auto max-w-lg space-y-4">
+    <div className="w-full space-y-4">
       {/* ===================================================================
           KARTU RINGKASAN 1: AYAM AFKIR / REKOMENDASI POTONG
          =================================================================== */}
