@@ -18,8 +18,15 @@ import {
   Wrench,
   AlertTriangle,
   Plus,
+  LayoutGrid,
+  Camera,
+  Check,
+  X,
+  MapPin,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
+import { QrScannerModal } from "./QrScannerModal";
 
 interface ModularWorkerViewProps {
   containers: LocalContainer[];
@@ -50,6 +57,10 @@ export function ModularWorkerView({
   const [popChangeAmount, setPopChangeAmount] = useState<number>(1);
   const [popChangeReason, setPopChangeReason] = useState<string>("");
 
+  // Modal Grid Selector (Opsi 3) & Scanner Kamera QR (Opsi 1)
+  const [showGridModal, setShowGridModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
+
   const activeIndex = Math.max(
     0,
     displayContainers.findIndex((c) => c.code === selectedCode)
@@ -65,18 +76,26 @@ export function ModularWorkerView({
 
   const todayStr = getTodayDateStr();
 
-  // Query log aktivitas hari ini untuk container aktif
-  const todayLogs = useLiveQuery(
+  // Query semua aktivitas hari ini untuk pemetaan status pakan seluruh kandang
+  const allTodayLogs = useLiveQuery(
     async () => {
-      if (!currentContainer) return [];
-      const logs = await localDb.activityLogs
-        .where("containerId")
-        .equals(currentContainer.id)
-        .toArray();
+      const logs = await localDb.activityLogs.toArray();
       return logs.filter((l) => l.performedAt.startsWith(todayStr));
     },
-    [currentContainer?.id, todayStr],
+    [todayStr],
     []
+  );
+
+  // Set ID container yang sudah dikasih pakan/rawat hari ini
+  const fedContainerIdsToday = new Set(
+    (allTodayLogs || [])
+      .filter((l) => l.activityType === "ROUTINE")
+      .map((l) => l.containerId)
+  );
+
+  // Query log aktivitas hari ini untuk container aktif
+  const todayLogs = (allTodayLogs || []).filter(
+    (l) => l.containerId === currentContainer?.id
   );
 
   // Hitung berapa kali pakan/rawat hari ini & kapan terakhir
@@ -328,29 +347,59 @@ export function ModularWorkerView({
         <button
           onClick={handlePrev}
           disabled={activeIndex === 0}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition shrink-0"
+          title="Kandang Sebelumnya"
         >
           <ChevronLeft className="h-6 w-6 stroke-[3]" />
         </button>
 
-        <div className="text-center min-w-0 flex-1">
-          <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950">
-            {currentModule?.name || "Sistem Ternak"}
-          </span>
+        {/* Center: Tap to open Grid Selector */}
+        <button
+          onClick={() => setShowGridModal(true)}
+          className="text-center min-w-0 flex-1 hover:bg-slate-50 p-1.5 rounded-2xl transition active:scale-98"
+          title="Klik untuk buka daftar semua kandang"
+        >
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950">
+              {currentModule?.name || "Sistem Ternak"}
+            </span>
+            <LayoutGrid className="h-3.5 w-3.5 text-slate-400" />
+          </div>
           <h2 className="text-xl font-black text-slate-900 truncate mt-0.5">
             {currentContainer.name}
           </h2>
           <div className="text-xs font-bold text-slate-500">
-            Kode: <span className="font-black text-slate-800">{currentContainer.code}</span> • {activeIndex + 1} dari {displayContainers.length}
+            Kode: <span className="font-black text-slate-800">{currentContainer.code}</span> • {activeIndex + 1} dari {displayContainers.length}{" "}
+            <span className="text-emerald-700 font-black underline ml-1">Pilih</span>
           </div>
-        </div>
+        </button>
 
         <button
           onClick={handleNext}
           disabled={activeIndex === displayContainers.length - 1}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition shrink-0"
+          title="Kandang Berikutnya"
         >
           <ChevronRight className="h-6 w-6 stroke-[3]" />
+        </button>
+      </div>
+
+      {/* QUICK ACTIONS BAR: SCAN QR KAMERA & BUKA SEMUA KANDANG */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => setShowScannerModal(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-700 bg-emerald-700 py-3 px-4 text-xs font-black text-white shadow-sm hover:bg-emerald-800 active:scale-95 transition"
+        >
+          <Camera className="h-4 w-4" />
+          <span>Scan QR Kandang</span>
+        </button>
+
+        <button
+          onClick={() => setShowGridModal(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white py-3 px-4 text-xs font-black text-slate-800 shadow-xs hover:bg-slate-50 active:scale-95 transition"
+        >
+          <LayoutGrid className="h-4 w-4 text-emerald-700" />
+          <span>Daftar {displayContainers.length} Kandang</span>
         </button>
       </div>
 
@@ -728,6 +777,146 @@ export function ModularWorkerView({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* MODAL SCANNER KAMERA QR (OPSI 1) */}
+      {showScannerModal && (
+        <QrScannerModal
+          onScanSuccess={(code) => {
+            setShowScannerModal(false);
+            const found = displayContainers.find(
+              (c) => c.code.toLowerCase() === code.toLowerCase()
+            );
+            if (found) {
+              onSelectCode(found.code);
+              toast.success(`🎯 Langsung membuka ${found.name}!`);
+            } else {
+              toast.error(`Kode "${code}" tidak ditemukan pada daftar wadah.`);
+            }
+          }}
+          onClose={() => setShowScannerModal(false)}
+        />
+      )}
+
+      {/* MODAL GRID SELECTOR DENGAN STATUS WARNA (OPSI 3) */}
+      {showGridModal && (
+        <div
+          onClick={() => setShowGridModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-3xl border-2 border-emerald-700 bg-white p-5 sm:p-6 shadow-2xl overflow-hidden"
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2">
+                <LayoutGrid className="h-5 w-5 text-emerald-700" />
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Pilih Wadah / Kandang ({displayContainers.length})
+                  </h3>
+                  <div className="flex items-center gap-3 text-[11px] font-bold mt-0.5">
+                    <span className="flex items-center gap-1 text-emerald-800">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />
+                      Sudah Dirawat Hari Ini
+                    </span>
+                    <span className="flex items-center gap-1 text-amber-900">
+                      <span className="h-2.5 w-2.5 rounded-full bg-amber-400 inline-block" />
+                      Belum Dirawat
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGridModal(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Grid Kartu Wadah */}
+            <div className="flex-1 overflow-y-auto py-4 pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {displayContainers.map((item, idx) => {
+                  const isCurrent = item.code === currentContainer.code;
+                  const isFedToday = fedContainerIdsToday.has(item.id);
+                  const itemModule = modules.find((m) => m.id === item.moduleId);
+                  const itemSubject = subjects.find(
+                    (s) => s.containerId === item.id && s.isActive
+                  );
+                  const pop = itemSubject?.populationCount ?? 0;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onSelectCode(item.code);
+                        setShowGridModal(false);
+                      }}
+                      className={`flex flex-col justify-between p-3.5 rounded-2xl border-2 text-left transition active:scale-95 ${
+                        isCurrent
+                          ? "border-emerald-700 bg-emerald-50/70 ring-2 ring-emerald-600"
+                          : isFedToday
+                          ? "border-emerald-300 bg-emerald-50/30 hover:bg-emerald-50"
+                          : "border-amber-300 bg-amber-50/40 hover:bg-amber-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <div>
+                          <div className="text-[10px] font-black uppercase text-slate-400">
+                            {itemModule?.name || "Sistem"}
+                          </div>
+                          <div className="text-sm font-black text-slate-900 leading-tight mt-0.5">
+                            {item.name}
+                          </div>
+                          <div className="text-xs font-mono font-bold text-slate-500">
+                            {item.code}
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="shrink-0 text-right">
+                          {isFedToday ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-900">
+                              <Check className="h-3 w-3 text-emerald-700 stroke-[3]" />
+                              <span>Selesai</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-950">
+                              <span>Belum</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between text-[11px] font-bold pt-2 border-t border-slate-200/60">
+                        <span className="text-slate-500">
+                          Populasi: <strong className="text-slate-800">{pop} unit</strong>
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">
+                            ● Sedang Dibuka
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowGridModal(false)}
+                className="w-full rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-xs font-black text-slate-700 hover:bg-slate-200 active:scale-95 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

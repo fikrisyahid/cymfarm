@@ -22,5 +22,8 @@
     "db:push": "bun ops/sync-env.ts && bun run --cwd main db:push",
     "db:studio": "bun ops/sync-env.ts && bun run --cwd main db:studio",
     "ci": "bash ops/ci.sh"
+  },
+  "dependencies": {
+    "html5-qrcode": "^2.3.8"
   }
 }

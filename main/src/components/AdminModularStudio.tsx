@@ -8,7 +8,8 @@ import {
   type LocalContainer,
   type LocalSubject,
 } from "@/lib/offline-db";
-import { Sparkles, Plus, Trash2, Edit2, Layers, Check, X, Box } from "lucide-react";
+import { Sparkles, Plus, Trash2, Edit2, Layers, Check, X, Box, QrCode } from "lucide-react";
+import { QrViewModal } from "./QrViewModal";
 
 export function AdminModularStudio() {
   const modules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
@@ -21,6 +22,10 @@ export function AdminModularStudio() {
 
   const [showModal, setShowModal] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+
+  // Modal QR Code View/Download
+  const [selectedQrContainer, setSelectedQrContainer] = useState<LocalContainer | null>(null);
+  const [selectedQrModule, setSelectedQrModule] = useState<LocalFarmModule | null>(null);
 
   // Form State
   const [modName, setModName] = useState("");
@@ -318,11 +323,45 @@ export function AdminModularStudio() {
                           {m.config?.harvestUnitLabel ? ` (${m.config.harvestUnitLabel})` : ""}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-200">
-                        <span className="font-bold text-slate-500">Wadah Fisik:</span>
-                        <span className="font-black text-slate-800">
-                          {relatedCount} Lokasi Aktif
-                        </span>
+                      <div className="pt-2 border-t border-slate-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-slate-500">Daftar Wadah & QR:</span>
+                          <span className="font-black text-slate-800">
+                            {relatedCount} Lokasi Aktif
+                          </span>
+                        </div>
+                        {/* List preview wadah dengan tombol QR */}
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                          {(containers || [])
+                            .filter((c) => c.moduleId === m.id)
+                            .map((cont) => (
+                              <div
+                                key={cont.id}
+                                className="flex items-center justify-between gap-2 rounded-xl bg-white p-2 border border-slate-200"
+                              >
+                                <div className="min-w-0">
+                                  <div className="font-black text-slate-800 truncate leading-tight">
+                                    {cont.name}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-slate-400">
+                                    {cont.code}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedQrContainer(cont);
+                                    setSelectedQrModule(m);
+                                  }}
+                                  className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800 border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition shrink-0"
+                                  title="Lihat / Cetak / Download QR Code"
+                                >
+                                  <QrCode className="h-3.5 w-3.5" />
+                                  <span>QR</span>
+                                </button>
+                              </div>
+                            ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -780,6 +819,18 @@ export function AdminModularStudio() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* MODAL LIHAT / DOWNLOAD / CETAK QR CODE */}
+      {selectedQrContainer && (
+        <QrViewModal
+          container={selectedQrContainer}
+          module={selectedQrModule || undefined}
+          onClose={() => {
+            setSelectedQrContainer(null);
+            setSelectedQrModule(null);
+          }}
+        />
       )}
     </div>
   );
