@@ -35,8 +35,10 @@ import {
 } from "lucide-react";
 import {
   localDb,
+  DEFAULT_MODULE_CATEGORIES,
   type LocalContainer,
   type LocalFarmModule,
+  type LocalFarmModuleCategory,
   type LocalSubject,
 } from "@/lib/offline-db";
 import type { LegoBlockType, FlowNodeData } from "@/db/schema";
@@ -172,35 +174,39 @@ const nodeTypes = {
 
 interface StudioFlowBuilderProps {
   modules: LocalFarmModule[];
+  moduleCategories?: LocalFarmModuleCategory[];
   containers?: LocalContainer[];
   subjects?: LocalSubject[];
 }
 
 export function StudioFlowBuilder({
   modules,
+  moduleCategories = [],
   containers = [],
   subjects = [],
 }: StudioFlowBuilderProps) {
+  const activeModuleCategories =
+    moduleCategories.length > 0 ? moduleCategories : DEFAULT_MODULE_CATEGORIES;
+
   const [selectedModuleId, setSelectedModuleId] = useState<string>(
     modules[0]?.id || "mod-ayam-petelur"
   );
   const [newModName, setNewModName] = useState("");
-  const [newModCategory, setNewModCategory] = useState<
-    "LIVESTOCK" | "AQUACULTURE" | "PLANT"
-  >("PLANT");
+  const [newModCategory, setNewModCategory] = useState<string>("PLANT");
   const [newModTracking, setNewModTracking] = useState<"INDIVIDUAL" | "BATCH">(
     "BATCH"
   );
   const [showNewModal, setShowNewModal] = useState(false);
   const [showNewContainerModal, setShowNewContainerModal] = useState(false);
+  const [showCreateModCatModal, setShowCreateModCatModal] = useState(false);
+  const [newModCatName, setNewModCatName] = useState("");
+  const [newModCatIcon, setNewModCatIcon] = useState("🍄");
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   // State Modal Edit Info Modul
   const [showEditModModal, setShowEditModModal] = useState(false);
   const [editModName, setEditModName] = useState("");
-  const [editModCategory, setEditModCategory] = useState<
-    "LIVESTOCK" | "AQUACULTURE" | "PLANT"
-  >("PLANT");
+  const [editModCategory, setEditModCategory] = useState<string>("PLANT");
   const [editModDesc, setEditModDesc] = useState("");
 
   // State Modal Edit Container
@@ -474,6 +480,39 @@ export function StudioFlowBuilder({
     setEditModCategory(activeModule.category);
     setEditModDesc(activeModule.description || "");
     setShowEditModModal(true);
+  };
+
+  // Buat Kategori Modul Baru
+  const handleCreateModuleCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newModCatName.trim()) return;
+
+    const catId = `cat-mod-${newModCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString().slice(-3)}`;
+    const newCatObj: LocalFarmModuleCategory = {
+      id: catId,
+      name: newModCatName.trim(),
+      icon: newModCatIcon.trim() || "🌾",
+    };
+
+    await localDb.farmModuleCategories.put(newCatObj);
+
+    await localDb.activityLogs.put({
+      id: `log-modcat-crt-${Date.now()}`,
+      moduleId: "system",
+      containerId: "system",
+      activityType: "MODULE_CATEGORY_CREATE",
+      quantity: 1,
+      note: `Tambah kategori modul baru: ${newCatObj.icon} ${newCatObj.name}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    setNewModCategory(catId);
+    setEditModCategory(catId);
+    setNewModCatName("");
+    setShowCreateModCatModal(false);
+    setSaveNotice(`Kategori "${newCatObj.name}" berhasil ditambahkan!`);
+    setTimeout(() => setSaveNotice(null), 3000);
   };
 
   // Simpan Perubahan Info Modul
@@ -814,21 +853,28 @@ export function StudioFlowBuilder({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-slate-800">
-                    Kategori
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-black text-slate-800">
+                      Kategori
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModCatModal(true)}
+                      className="text-[11px] font-black text-emerald-700 hover:underline"
+                    >
+                      + Buat Baru
+                    </button>
+                  </div>
                   <select
                     value={newModCategory}
-                    onChange={(e) =>
-                      setNewModCategory(
-                        e.target.value as "LIVESTOCK" | "AQUACULTURE" | "PLANT"
-                      )
-                    }
+                    onChange={(e) => setNewModCategory(e.target.value)}
                     className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
                   >
-                    <option value="PLANT">🌱 Tanaman</option>
-                    <option value="LIVESTOCK">🐓 Peternakan</option>
-                    <option value="AQUACULTURE">🐟 Perikanan</option>
+                    {activeModuleCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.icon} {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -1469,21 +1515,28 @@ export function StudioFlowBuilder({
               </div>
 
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                  Kategori
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                    Kategori
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModCatModal(true)}
+                    className="text-[11px] font-black text-emerald-700 hover:underline"
+                  >
+                    + Buat Baru
+                  </button>
+                </div>
                 <select
                   value={editModCategory}
-                  onChange={(e) =>
-                    setEditModCategory(
-                      e.target.value as "LIVESTOCK" | "AQUACULTURE" | "PLANT"
-                    )
-                  }
+                  onChange={(e) => setEditModCategory(e.target.value)}
                   className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
                 >
-                  <option value="LIVESTOCK">🐓 Peternakan</option>
-                  <option value="AQUACULTURE">🐟 Perikanan</option>
-                  <option value="PLANT">🌱 Tanaman</option>
+                  {activeModuleCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1674,6 +1727,92 @@ export function StudioFlowBuilder({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal: Buat Kategori Modul Baru */}
+      {showCreateModCatModal && (
+        <div
+          onClick={() => setShowCreateModCatModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleCreateModuleCategory}
+            className="w-full max-w-sm rounded-3xl border-3 border-emerald-700 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  KATEGORI SISTEM
+                </span>
+                <h3 className="text-xl font-black text-slate-900">
+                  + Buat Kategori Modul
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModCatModal(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3.5">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Nama Kategori *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newModCatName}
+                  onChange={(e) => setNewModCatName(e.target.value)}
+                  placeholder="Misal: Jamur / Serangga BSF / Umum"
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Pilih Ikon Emoji
+                </label>
+                <div className="mt-1.5 flex gap-2 flex-wrap">
+                  {["🍄", "🐛", "🐝", "🌾", "🐑", "🐄", "🐓", "🐟", "🌱", "🌿", "🦆", "🪵"].map((emoji) => (
+                    <button
+                      type="button"
+                      key={emoji}
+                      onClick={() => setNewModCatIcon(emoji)}
+                      className={`h-11 w-11 rounded-xl text-xl flex items-center justify-center transition border-2 ${
+                        newModCatIcon === emoji
+                          ? "border-emerald-700 bg-emerald-100 scale-105 shadow-xs"
+                          : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateModCatModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white active:scale-95 hover:bg-emerald-800 shadow-sm"
+              >
+                Simpan Kategori
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

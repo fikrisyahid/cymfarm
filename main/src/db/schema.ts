@@ -55,12 +55,21 @@ export interface FlowGraphDefinition {
 }
 
 /**
- * 1. FARM MODULES (Dynamic Blueprint & Flow Definition)
+ * 1. FARM MODULES & CATEGORIES (Dynamic Blueprint & Flow Definition)
  */
+export type FarmCategory = string; // e.g. 'LIVESTOCK' | 'AQUACULTURE' | 'PLANT' | 'OTHER' | custom
+
+export const farmModuleCategories = pgTable("farm_module_categories", {
+  id: text("id").primaryKey(), // e.g. 'cat-livestock', 'cat-fungi'
+  name: text("name").notNull(), // e.g. 'Peternakan', 'Jamur / Fungi'
+  icon: text("icon").default("🌾").notNull(), // e.g. '🐓', '🍄'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const farmModules = pgTable("farm_modules", {
   id: text("id").primaryKey(), // e.g. 'mod-ayam-petelur', 'mod-lele-konsumsi'
   name: text("name").notNull(),
-  category: text("category").notNull(), // 'LIVESTOCK' | 'AQUACULTURE' | 'PLANT'
+  category: text("category").notNull(), // 'LIVESTOCK' | 'AQUACULTURE' | 'PLANT' | 'OTHER' or custom
   trackingMode: text("tracking_mode").notNull(), // 'INDIVIDUAL' (Ayam) | 'BATCH' (Lele)
   description: text("description"),
   flowGraph: jsonb("flow_graph").$type<FlowGraphDefinition>().notNull(),
@@ -142,6 +151,7 @@ export type ActivityType =
   | "FEED_PURCHASE_UPDATE"
   | "FEED_PURCHASE_DELETE"
   | "FEED_CATEGORY_CREATE"
+  | "MODULE_CATEGORY_CREATE"
   | "CONTAINER_CREATE"
   | "CONTAINER_UPDATE"
   | "MODULE_FLOW_UPDATE"

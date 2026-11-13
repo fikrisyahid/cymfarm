@@ -20,6 +20,11 @@ export default function AdminPage() {
     []
   );
   const subjects = useLiveQuery(() => localDb.subjects.toArray(), [], []);
+  const moduleCategories = useLiveQuery(
+    () => localDb.farmModuleCategories.toArray(),
+    [],
+    []
+  );
 
   if (!seeded) {
     return (
@@ -34,6 +39,7 @@ export default function AdminPage() {
       <div className="p-4">
         <StudioFlowBuilder
           modules={modules || []}
+          moduleCategories={moduleCategories || []}
           containers={containers || []}
           subjects={subjects || []}
         />

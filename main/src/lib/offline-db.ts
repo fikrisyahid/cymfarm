@@ -15,10 +15,16 @@ import {
   activityLogsData,
 } from "@/data/dummy";
 
+export interface LocalFarmModuleCategory {
+  id: string;
+  name: string;
+  icon: string;
+}
+
 export interface LocalFarmModule {
   id: string;
   name: string;
-  category: "LIVESTOCK" | "AQUACULTURE" | "PLANT";
+  category: string; // 'LIVESTOCK' | 'AQUACULTURE' | 'PLANT' | 'OTHER' or custom
   trackingMode: "INDIVIDUAL" | "BATCH";
   description: string;
   flowGraph: FlowGraphDefinition;
@@ -99,6 +105,13 @@ export const DEFAULT_FEED_CATEGORIES: LocalFeedCategory[] = [
   { id: "LAINNYA", name: "Lainnya", icon: "🌾" },
 ];
 
+export const DEFAULT_MODULE_CATEGORIES: LocalFarmModuleCategory[] = [
+  { id: "LIVESTOCK", name: "Peternakan", icon: "🐓" },
+  { id: "AQUACULTURE", name: "Perikanan", icon: "🐟" },
+  { id: "PLANT", name: "Tanaman", icon: "🌱" },
+  { id: "OTHER", name: "Lainnya / Umum", icon: "🌾" },
+];
+
 export function getActivityCategory(activityType: ActivityType): ActivityCategory {
   switch (activityType) {
     case "FEED":
@@ -122,6 +135,7 @@ export function getActivityCategory(activityType: ActivityType): ActivityCategor
       return "STRUKTURAL";
     case "MODULE_CREATE":
     case "MODULE_FLOW_UPDATE":
+    case "MODULE_CATEGORY_CREATE":
       return "SISTEM";
     default:
       return "OPERASIONAL";
@@ -130,6 +144,7 @@ export function getActivityCategory(activityType: ActivityType): ActivityCategor
 
 export class CymFarmOfflineDB extends Dexie {
   farmModules!: Table<LocalFarmModule, string>;
+  farmModuleCategories!: Table<LocalFarmModuleCategory, string>;
   containers!: Table<LocalContainer, string>;
   subjects!: Table<LocalSubject, string>;
   activityLogs!: Table<LocalActivityLog, string>;
@@ -140,6 +155,7 @@ export class CymFarmOfflineDB extends Dexie {
     super("cymfarm_offline_db");
     this.version(1).stores({
       farmModules: "id, category, trackingMode",
+      farmModuleCategories: "id",
       containers: "id, parentId, moduleId, code, containerType, status, sortOrder",
       subjects: "id, moduleId, containerId, isActive, isRecommendedForCut",
       activityLogs: "id, moduleId, containerId, subjectId, activityType, performedAt, syncedToCloud",
@@ -179,6 +195,10 @@ export async function ensureInitialFarmSeed() {
     if (existingCatCount === 0) {
       await localDb.feedCategories.bulkPut(DEFAULT_FEED_CATEGORIES);
     }
+    const existingModCatCount = await localDb.farmModuleCategories.count();
+    if (existingModCatCount === 0) {
+      await localDb.farmModuleCategories.bulkPut(DEFAULT_MODULE_CATEGORIES);
+    }
     return;
   }
 
@@ -189,4 +209,5 @@ export async function ensureInitialFarmSeed() {
   await localDb.feedPurchases.bulkPut(feedPurchasesData as LocalFeedPurchase[]);
   await localDb.activityLogs.bulkPut(activityLogsData as LocalActivityLog[]);
   await localDb.feedCategories.bulkPut(DEFAULT_FEED_CATEGORIES);
+  await localDb.farmModuleCategories.bulkPut(DEFAULT_MODULE_CATEGORIES);
 }
