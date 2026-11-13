@@ -39,8 +39,15 @@ export function AnalyticsAndFeedView({
   feedPurchases,
   activityLogs,
 }: AnalyticsAndFeedViewProps) {
-  // Modal State: "AUTO_RULE_<modId>" | "TIMER_<modId>" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | null
+  // Modal State: "AUTO_RULE_<modId>" | "TIMER_<modId>" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | "TERMINATED_HISTORY" | null
   const [activeModal, setActiveModal] = useState<string | null>(null);
+
+  // State Konfirmasi Potong Subjek
+  const [confirmSubject, setConfirmSubject] = useState<LocalSubject | null>(null);
+
+  // State Conflict Resolution Undo Potong
+  const [undoConflictSubject, setUndoConflictSubject] = useState<LocalSubject | null>(null);
+  const [resolveTargetSlotId, setResolveTargetSlotId] = useState<string>("");
 
   // Form State untuk Tambah / Edit Pakan
   const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
@@ -127,36 +134,122 @@ export function AnalyticsAndFeedView({
     setActiveModal(null);
   };
 
-  // Eksekusi Terminasi / Potong / Panen Akhir Subjek
-  const handleTerminateSubject = async (
-    subject: LocalSubject,
-    actionLabel: string = "Diproses"
-  ) => {
-    await localDb.subjects.update(subject.id, {
+  // Subjek yang sudah dipotong / terminated (untuk fitur riwayat & undo)
+  const terminatedSubjects = subjects.filter((s) => !s.isActive && s.moduleId === "mod-ayam-petelur");
+  const vacantSlots = containers.filter((c) => c.containerType === "CAGE_SLOT" && c.status === "VACANT");
+
+  // Eksekusi Konfirmasi Potong Subjek
+  const handleExecuteTerminate = async () => {
+    if (!confirmSubject) return;
+    const sub = confirmSubject;
+
+    await localDb.subjects.update(sub.id, {
       isActive: false,
     });
 
     const isSlot = containers.find(
-      (c) => c.id === subject.containerId && c.containerType === "CAGE_SLOT"
+      (c) => c.id === sub.containerId && c.containerType === "CAGE_SLOT"
     );
     if (isSlot) {
-      await localDb.containers.update(subject.containerId, {
+      await localDb.containers.update(sub.containerId, {
         status: "VACANT",
       });
     }
 
     await localDb.activityLogs.put({
       id: `log-term-${Date.now()}`,
-      moduleId: subject.moduleId,
-      containerId: subject.containerId,
-      subjectId: subject.id,
+      moduleId: sub.moduleId,
+      containerId: sub.containerId,
+      subjectId: sub.id,
       activityType: "AFKIR_CUT",
-      quantity: subject.populationCount,
-      note: `${subject.label} ${actionLabel}.`,
+      quantity: sub.populationCount,
+      note: `${sub.label} dipotong (stop bertelur ${sub.consecutiveZeroYieldDays} hari).`,
       performedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
-    toast.success(`${subject.label} berhasil ${actionLabel}!`);
+
+    toast.success(`${sub.label} selesai dipotong! Kandang sekarang kosong.`);
+    setConfirmSubject(null);
+  };
+
+  // Undo Potong dengan Conflict Detection
+  const handleUndoTerminate = async (sub: LocalSubject) => {
+    const originalContainer = containers.find((c) => c.id === sub.containerId);
+
+    // Cek apakah ada ayam lain yang sedang aktif di kandang aslinya (Conflict!)
+    const currentOccupant = subjects.find(
+      (s) => s.containerId === sub.containerId && s.isActive && s.id !== sub.id
+    );
+
+    if (currentOccupant || originalContainer?.status === "MAINTENANCE") {
+      // Terjadi konflik: kandang lama sudah diisi ayam lain atau sedang rusak!
+      setUndoConflictSubject(sub);
+      setResolveTargetSlotId(vacantSlots[0]?.id || "");
+      return;
+    }
+
+    // Tidak ada konflik: kembalikan ke kandang aslinya
+    await localDb.subjects.update(sub.id, {
+      isActive: true,
+      consecutiveZeroYieldDays: 0,
+      isRecommendedForCut: false,
+    });
+
+    if (originalContainer) {
+      await localDb.containers.update(originalContainer.id, {
+        status: "ACTIVE",
+      });
+    }
+
+    await localDb.activityLogs.put({
+      id: `log-undo-${Date.now()}`,
+      moduleId: sub.moduleId,
+      containerId: sub.containerId,
+      subjectId: sub.id,
+      activityType: "EVACUATE_SUBJECT",
+      quantity: sub.populationCount,
+      note: `Batal potong (Undo): ${sub.label} dikembalikan ke ${originalContainer?.name || "Kandang"}.`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    toast.success(`Berhasil Undo! ${sub.label} kembali aktif.`);
+  };
+
+  // Selesaikan Konflik Undo: Pindahkan ke kandang kosong lain yang dipilih
+  const handleResolveUndoConflict = async () => {
+    if (!undoConflictSubject || !resolveTargetSlotId) return;
+    const sub = undoConflictSubject;
+    const targetSlot = containers.find((c) => c.id === resolveTargetSlotId);
+
+    await localDb.subjects.update(sub.id, {
+      isActive: true,
+      containerId: resolveTargetSlotId,
+      consecutiveZeroYieldDays: 0,
+      isRecommendedForCut: false,
+    });
+
+    if (targetSlot) {
+      await localDb.containers.update(targetSlot.id, {
+        status: "ACTIVE",
+      });
+    }
+
+    await localDb.activityLogs.put({
+      id: `log-undo-resolve-${Date.now()}`,
+      moduleId: sub.moduleId,
+      containerId: resolveTargetSlotId,
+      subjectId: sub.id,
+      activityType: "EVACUATE_SUBJECT",
+      quantity: sub.populationCount,
+      note: `Undo Potong (Konflik Diselesaikan): ${sub.label} dipindahkan ke ${targetSlot?.name}.`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    toast.success(`Konflik diselesaikan! ${sub.label} ditempatkan di ${targetSlot?.name}.`);
+    setUndoConflictSubject(null);
+    setResolveTargetSlotId("");
   };
 
   return (
@@ -220,18 +313,29 @@ export function AnalyticsAndFeedView({
                 : `Total ${modSubjects.length} unit/subjek dalam status operasional baik.`}
             </p>
 
-            {hasFlags && (
-              <button
-                onClick={() => setActiveModal(modalKey)}
-                className="mt-4 flex w-full items-center justify-between rounded-2xl bg-rose-700 px-5 py-3.5 text-base font-black text-white shadow-sm hover:bg-rose-800 active:scale-98"
-              >
-                <div className="flex items-center gap-2">
-                  <Scissors className="h-5 w-5" />
-                  <span>Lihat & Tindak Lanjut</span>
-                </div>
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            )}
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
+              {hasFlags && (
+                <button
+                  onClick={() => setActiveModal(modalKey)}
+                  className="flex-1 flex items-center justify-between rounded-2xl bg-rose-700 px-5 py-3.5 text-base font-black text-white shadow-sm hover:bg-rose-800 active:scale-98"
+                >
+                  <div className="flex items-center gap-2">
+                    <Scissors className="h-5 w-5" />
+                    <span>Lihat & Potong Ayam</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
+
+              {terminatedSubjects.length > 0 && mod.id === "mod-ayam-petelur" && (
+                <button
+                  onClick={() => setActiveModal("TERMINATED_HISTORY")}
+                  className="rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-xs sm:text-sm font-black text-slate-800 hover:bg-slate-100 active:scale-98"
+                >
+                  Riwayat Potong & Undo ({terminatedSubjects.length})
+                </button>
+              )}
+            </div>
 
             {/* Modal Detail untuk Modul Ini */}
             {activeModal === modalKey && (
@@ -284,10 +388,10 @@ export function AnalyticsAndFeedView({
                           </div>
 
                           <button
-                            onClick={() => handleTerminateSubject(sub, "Dieksekusi / Dipotong")}
-                            className="flex items-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2.5 text-xs font-black text-white active:scale-95"
+                            onClick={() => setConfirmSubject(sub)}
+                            className="flex items-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2.5 text-xs font-black text-white active:scale-95 shadow-xs hover:bg-rose-800"
                           >
-                            <Scissors className="h-4 w-4" /> Eksekusi
+                            <Scissors className="h-4 w-4" /> Potong
                           </button>
                         </div>
                       );
@@ -684,6 +788,174 @@ export function AnalyticsAndFeedView({
                     </span>
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL: RIWAYAT AYAM YANG SUDAH DIPOTONG & UNDO */}
+      {activeModal === "TERMINATED_HISTORY" && (
+        <div
+          onClick={() => setActiveModal(null)}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-2 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  Riwayat Potong & Batalkan (Undo)
+                </h3>
+                <p className="text-xs font-bold text-slate-500">
+                  Daftar ayam yang sebelumnya dipotong. Bisa dibatalkan jika salah potong.
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
+              {terminatedSubjects.length === 0 ? (
+                <div className="p-4 text-center text-sm font-bold text-slate-400">
+                  Belum ada ayam yang dipotong.
+                </div>
+              ) : (
+                terminatedSubjects.map((sub) => {
+                  const originalContainer = containers.find((c) => c.id === sub.containerId);
+                  return (
+                    <div
+                      key={sub.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div>
+                        <div className="text-base font-black text-slate-900">
+                          {sub.label}
+                        </div>
+                        <div className="text-xs font-bold text-slate-500">
+                          Kandang Asal: {originalContainer?.name || "Kandang"}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleUndoTerminate(sub)}
+                        className="rounded-xl border-2 border-emerald-700 bg-emerald-50 px-3.5 py-2 text-xs font-black text-emerald-900 hover:bg-emerald-100 active:scale-95"
+                      >
+                        Undo (Batal Potong)
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP KONFIRMASI POTONG AYAM */}
+      {confirmSubject && (
+        <div
+          onClick={() => setConfirmSubject(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl border-3 border-rose-500 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 text-rose-900">
+              <div className="rounded-2xl bg-rose-100 p-2.5">
+                <Scissors className="h-6 w-6 text-rose-700" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">
+                Konfirmasi Potong
+              </h3>
+            </div>
+
+            <p className="mt-3 text-sm font-bold text-slate-700">
+              Apakah Anda yakin ingin memotong <strong>{confirmSubject.label}</strong>? Slot kandang akan otomatis dikosongkan.
+            </p>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setConfirmSubject(null)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700 hover:bg-slate-200"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleExecuteTerminate}
+                className="flex-1 rounded-2xl bg-rose-700 py-3 text-sm font-black text-white hover:bg-rose-800 active:scale-95"
+              >
+                Ya, Potong
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP CONFLICT RESOLVER UNDO POTONG */}
+      {undoConflictSubject && (
+        <div
+          onClick={() => setUndoConflictSubject(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl border-3 border-amber-500 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center gap-2.5 text-amber-900">
+              <AlertTriangle className="h-6 w-6 text-amber-600 shrink-0" />
+              <h3 className="text-lg font-black text-slate-900">
+                Konflik: Kandang Lama Sudah Terisi!
+              </h3>
+            </div>
+
+            <p className="mt-2 text-xs font-bold text-slate-600">
+              Kandang asal <strong>{undoConflictSubject.label}</strong> sudah diisi oleh ayam lain atau sedang maintenance. Pilih kandang kosong baru untuk menempatkan ayam ini:
+            </p>
+
+            <div className="mt-3">
+              <label className="block text-xs font-black uppercase text-slate-700">
+                Pilih Kandang Kosong:
+              </label>
+              {vacantSlots.length === 0 ? (
+                <div className="mt-1 rounded-xl bg-rose-50 p-3 text-xs font-bold text-rose-800 border border-rose-200">
+                  Tidak ada kandang kosong yang tersedia saat ini! Buat atau kosongkan kandang lain terlebih dahulu.
+                </div>
+              ) : (
+                <select
+                  value={resolveTargetSlotId}
+                  onChange={(e) => setResolveTargetSlotId(e.target.value)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-3 text-sm font-bold text-slate-900"
+                >
+                  {vacantSlots.map((vs) => (
+                    <option key={vs.id} value={vs.id}>
+                      {vs.name} ({vs.code})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setUndoConflictSubject(null)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              {vacantSlots.length > 0 && (
+                <button
+                  onClick={handleResolveUndoConflict}
+                  className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800 active:scale-95"
+                >
+                  Tempatkan Ayam
+                </button>
               )}
             </div>
           </div>
