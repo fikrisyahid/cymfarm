@@ -1,8 +1,10 @@
 import Dexie, { type Table } from "dexie";
 import type {
+  ActivityCategory,
   ActivityType,
   ContainerStatus,
   ContainerType,
+  FeedCategory,
   FlowGraphDefinition,
 } from "../db/schema";
 import {
@@ -77,10 +79,39 @@ export interface LocalActivityLog {
 export interface LocalFeedPurchase {
   id: string;
   feedName: string;
+  category?: FeedCategory;
   weightKg: number;
   priceIdr?: number;
   purchasedAt: string;
   notes?: string;
+}
+
+export function getActivityCategory(activityType: ActivityType): ActivityCategory {
+  switch (activityType) {
+    case "FEED":
+    case "EGG_HARVEST":
+    case "SORT_TRANSFER":
+    case "START_FASTING":
+    case "FINISH_FASTING_CUT":
+    case "AFKIR_CUT":
+    case "POPULATE_SUBJECT":
+      return "OPERASIONAL";
+    case "FEED_PURCHASE_CREATE":
+    case "FEED_PURCHASE_UPDATE":
+    case "FEED_PURCHASE_DELETE":
+      return "LOGISTIK";
+    case "MAINTENANCE_SET":
+    case "MAINTENANCE_RESOLVED":
+    case "CONTAINER_CREATE":
+    case "CONTAINER_UPDATE":
+    case "EVACUATE_SUBJECT":
+      return "STRUKTURAL";
+    case "MODULE_CREATE":
+    case "MODULE_FLOW_UPDATE":
+      return "SISTEM";
+    default:
+      return "OPERASIONAL";
+  }
 }
 
 export class CymFarmOfflineDB extends Dexie {
@@ -97,7 +128,7 @@ export class CymFarmOfflineDB extends Dexie {
       containers: "id, parentId, moduleId, code, containerType, status, sortOrder",
       subjects: "id, moduleId, containerId, isActive, isRecommendedForCut",
       activityLogs: "id, moduleId, containerId, subjectId, activityType, performedAt, syncedToCloud",
-      feedPurchases: "id, purchasedAt",
+      feedPurchases: "id, category, purchasedAt",
     });
   }
 }

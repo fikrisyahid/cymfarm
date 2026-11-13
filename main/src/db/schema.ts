@@ -117,6 +117,13 @@ export const subjects = pgTable("subjects", {
 /**
  * 4. ACTIVITY LOGS (Immutable Historical Events - Preserved even if containers are upgraded/archived)
  */
+export type ActivityCategory =
+  | "ALL"
+  | "OPERASIONAL"
+  | "LOGISTIK"
+  | "STRUKTURAL"
+  | "SISTEM";
+
 export type ActivityType =
   | "FEED"
   | "EGG_HARVEST"
@@ -126,7 +133,15 @@ export type ActivityType =
   | "MAINTENANCE_SET"
   | "MAINTENANCE_RESOLVED"
   | "EVACUATE_SUBJECT"
-  | "AFKIR_CUT";
+  | "POPULATE_SUBJECT"
+  | "AFKIR_CUT"
+  | "FEED_PURCHASE_CREATE"
+  | "FEED_PURCHASE_UPDATE"
+  | "FEED_PURCHASE_DELETE"
+  | "CONTAINER_CREATE"
+  | "CONTAINER_UPDATE"
+  | "MODULE_FLOW_UPDATE"
+  | "MODULE_CREATE";
 
 export const activityLogs = pgTable("activity_logs", {
   id: text("id").primaryKey(),
@@ -141,11 +156,14 @@ export const activityLogs = pgTable("activity_logs", {
 });
 
 /**
- * 5. FEED PURCHASES (Simple Historical Purchase Log + Smart Depletion Forecast)
+ * 5. FEED PURCHASES (Independent Feed & Logistics Management)
  */
+export type FeedCategory = "AYAM" | "IKAN" | "TANAMAN" | "LAINNYA";
+
 export const feedPurchases = pgTable("feed_purchases", {
   id: text("id").primaryKey(),
   feedName: text("feed_name").notNull(), // e.g. 'Pakan Ayam Petelur Karung 25kg'
+  category: text("category").$type<FeedCategory>().default("AYAM").notNull(),
   weightKg: numeric("weight_kg", { precision: 8, scale: 2 }).notNull(), // e.g. 25.00
   priceIdr: integer("price_idr"), // Optional price
   purchasedAt: timestamp("purchased_at").defaultNow().notNull(),

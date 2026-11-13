@@ -18,6 +18,7 @@ import {
   Settings,
   UserCheck,
   Calendar,
+  Wheat,
 } from "lucide-react";
 import { localDb } from "@/lib/offline-db";
 import { useAuthSession } from "@/lib/use-session";
@@ -171,6 +172,18 @@ export function AppShell({
         >
           <BarChart3 className="h-6 w-6" />
           <span className="text-[11px]">Analisa</span>
+        </Link>
+
+        <Link
+          href="/pakan"
+          className={`flex flex-1 flex-col items-center justify-center py-1 transition ${
+            pathname.startsWith("/pakan")
+              ? "text-amber-700 font-black"
+              : "text-slate-500 font-bold hover:text-slate-800"
+          }`}
+        >
+          <Wheat className="h-6 w-6" />
+          <span className="text-[11px]">Pakan</span>
         </Link>
 
         {session?.role === "ADMIN" && (

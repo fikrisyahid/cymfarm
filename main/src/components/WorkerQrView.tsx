@@ -204,6 +204,17 @@ export function WorkerQrView({
       fedToday: false,
       eggHarvestedToday: false,
     });
+    await localDb.activityLogs.put({
+      id: `log-pop-${Date.now()}`,
+      moduleId: slot.moduleId,
+      containerId: slot.id,
+      subjectId: newId,
+      activityType: "POPULATE_SUBJECT",
+      quantity: 1,
+      note: `Isi ayam baru ke ${slot.name}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
     triggerToast(`Ayam baru dimasukkan ke ${slot.name}!`);
   };
 
@@ -224,11 +235,33 @@ export function WorkerQrView({
       await localDb.containers.update(evacuateTargetSlotId, {
         status: "ACTIVE",
       });
+      await localDb.activityLogs.put({
+        id: `log-evac-${Date.now()}`,
+        moduleId: target.moduleId,
+        containerId: evacuateTargetSlotId,
+        subjectId: occupant.id,
+        activityType: "EVACUATE_SUBJECT",
+        quantity: 1,
+        note: `Evakuasi ${occupant.label} dari ${target.name} ke slot lain karena rusak`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
     }
 
     await localDb.containers.update(target.id, {
       status: "MAINTENANCE",
       maintenanceNote: maintenanceNote.trim() || "Perbaikan",
+    });
+
+    await localDb.activityLogs.put({
+      id: `log-maint-set-${Date.now()}`,
+      moduleId: target.moduleId,
+      containerId: target.id,
+      activityType: "MAINTENANCE_SET",
+      quantity: 1,
+      note: `${target.name} ditandai Rusak: ${maintenanceNote.trim() || "Perbaikan"}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
     });
 
     setMaintenanceSlotId(null);
@@ -245,6 +278,16 @@ export function WorkerQrView({
     await localDb.containers.update(target.id, {
       status: hasOccupant ? "ACTIVE" : "VACANT",
       maintenanceNote: undefined,
+    });
+    await localDb.activityLogs.put({
+      id: `log-maint-res-${Date.now()}`,
+      moduleId: target.moduleId,
+      containerId: target.id,
+      activityType: "MAINTENANCE_RESOLVED",
+      quantity: 1,
+      note: `Perbaikan selesai: ${target.name} aktif kembali`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
     });
     triggerToast(`${target.name} aktif kembali!`);
   };

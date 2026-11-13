@@ -13,15 +13,19 @@ import {
   ChevronRight,
   Timer,
   CheckCircle2,
+  Wheat,
 } from "lucide-react";
+import Link from "next/link";
 import {
   localDb,
+  getActivityCategory,
   type LocalActivityLog,
   type LocalContainer,
   type LocalFeedPurchase,
   type LocalFarmModule,
   type LocalSubject,
 } from "@/lib/offline-db";
+import type { ActivityCategory, FeedCategory } from "@/db/schema";
 import { toast } from "sonner";
 
 interface AnalyticsAndFeedViewProps {
@@ -49,10 +53,14 @@ export function AnalyticsAndFeedView({
   const [undoConflictSubject, setUndoConflictSubject] = useState<LocalSubject | null>(null);
   const [resolveTargetSlotId, setResolveTargetSlotId] = useState<string>("");
 
+  // State Filter Kategori Catatan Aktivitas
+  const [activityCategoryFilter, setActivityCategoryFilter] = useState<ActivityCategory>("ALL");
+
   // Form State untuk Tambah / Edit Pakan
   const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
   const [weightInput, setWeightInput] = useState<number>(25);
   const [priceInput, setPriceInput] = useState<number>(215000);
+  const [feedCategoryInput, setFeedCategoryInput] = useState<FeedCategory>("AYAM");
   const [feedNameInput, setFeedNameInput] = useState<string>("Pakan Ayam");
   const [notesInput, setNotesInput] = useState<string>("Beli 1 karung 25kg");
   const [purchasedDateInput, setPurchasedDateInput] = useState<string>(() => new Date().toISOString().split("T")[0]);
@@ -98,6 +106,7 @@ export function AnalyticsAndFeedView({
   const handleOpenEditFeed = (fp: LocalFeedPurchase) => {
     setEditingFeedId(fp.id);
     setFeedNameInput(fp.feedName);
+    setFeedCategoryInput(fp.category || "AYAM");
     setWeightInput(fp.weightKg);
     setPriceInput(fp.priceIdr || 0);
     setNotesInput(fp.notes || "");
@@ -113,21 +122,48 @@ export function AnalyticsAndFeedView({
     if (editingFeedId) {
       await localDb.feedPurchases.update(editingFeedId, {
         feedName: feedNameInput,
+        category: feedCategoryInput,
         weightKg: weightInput,
         priceIdr: priceInput,
         purchasedAt: purchasedAtIso,
         notes: notesInput,
       });
+
+      await localDb.activityLogs.put({
+        id: `log-feed-edit-${Date.now()}`,
+        moduleId: "logistik",
+        containerId: "gudang",
+        activityType: "FEED_PURCHASE_UPDATE",
+        quantity: Math.round(weightInput),
+        note: `Edit riwayat pakan: ${feedNameInput} (${weightInput} KG, ${feedCategoryInput})`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
       toast.success(`Riwayat pakan berhasil diperbarui!`);
     } else {
+      const newId = `feed-${Date.now()}`;
       await localDb.feedPurchases.put({
-        id: `feed-${Date.now()}`,
+        id: newId,
         feedName: feedNameInput || `Pakan (${weightInput} KG)`,
+        category: feedCategoryInput,
         weightKg: weightInput,
         priceIdr: priceInput,
         purchasedAt: purchasedAtIso,
         notes: notesInput,
       });
+
+      await localDb.activityLogs.put({
+        id: `log-feed-create-${Date.now()}`,
+        moduleId: "logistik",
+        containerId: "gudang",
+        activityType: "FEED_PURCHASE_CREATE",
+        quantity: Math.round(weightInput),
+        note: `Catat beli pakan: ${feedNameInput} (${weightInput} KG, ${feedCategoryInput})`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
       toast.success(`Catatan beli ${weightInput} KG berhasil disimpan!`);
     }
     setEditingFeedId(null);
@@ -484,6 +520,14 @@ export function AnalyticsAndFeedView({
               </h3>
             </div>
           </div>
+
+          <Link
+            href="/pakan"
+            className="flex items-center gap-1 text-xs font-black text-amber-900 hover:underline"
+          >
+            <span>Buka Manajemen</span>
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
 
         <p className="mt-2 text-sm font-bold text-slate-700">
@@ -503,6 +547,7 @@ export function AnalyticsAndFeedView({
             onClick={() => {
               setEditingFeedId(null);
               setFeedNameInput("Pakan Ayam");
+              setFeedCategoryInput("AYAM");
               setWeightInput(25);
               setPriceInput(215000);
               setNotesInput("Beli 1 karung 25kg");
@@ -520,7 +565,7 @@ export function AnalyticsAndFeedView({
             className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-slate-300 bg-white py-3.5 text-sm font-black text-slate-800 hover:bg-slate-100 active:scale-98"
           >
             <Calendar className="h-4 w-4 text-emerald-700" />
-            <span>Riwayat Beli</span>
+            <span>Riwayat Beli ({sortedPurchases.length})</span>
           </button>
         </div>
       </div>
@@ -596,6 +641,22 @@ export function AnalyticsAndFeedView({
                   placeholder="Misal: Pakan Ayam Petelur"
                   className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-800">
+                  Kategori Pakan
+                </label>
+                <select
+                  value={feedCategoryInput}
+                  onChange={(e) => setFeedCategoryInput(e.target.value as FeedCategory)}
+                  className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
+                >
+                  <option value="AYAM">🐔 Pakan Ayam</option>
+                  <option value="IKAN">🐟 Pakan Lele / Ikan</option>
+                  <option value="TANAMAN">🥬 Nutrisi Tanaman</option>
+                  <option value="LAINNYA">🌾 Lainnya</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -741,7 +802,7 @@ export function AnalyticsAndFeedView({
         </div>
       )}
 
-      {/* MODAL: CATATAN LOG AKTIVITAS */}
+      {/* MODAL: CATATAN LOG AKTIVITAS (DENGAN HORIZONTAL TAB KATEGORI) */}
       {activeModal === "ACTIVITY_LOGS" && (
         <div
           onClick={() => setActiveModal(null)}
@@ -749,12 +810,17 @@ export function AnalyticsAndFeedView({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col"
+            className="w-full max-w-xl rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col"
           >
             <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
-              <h3 className="text-xl font-black text-slate-900">
-                Log Aktivitas Lapangan
-              </h3>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  Catatan Aktivitas Lapangan
+                </h3>
+                <p className="text-xs font-bold text-slate-500">
+                  Rekap seluruh riwayat CRUD operasional, logistik, & sistem.
+                </p>
+              </div>
               <button
                 onClick={() => setActiveModal(null)}
                 className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
@@ -763,32 +829,106 @@ export function AnalyticsAndFeedView({
               </button>
             </div>
 
-            <div className="mt-4 flex-1 space-y-2 overflow-y-auto pr-1">
-              {activityLogs.length === 0 ? (
-                <div className="p-4 text-center text-sm font-bold text-slate-400">
-                  Belum ada log kegiatan hari ini.
-                </div>
-              ) : (
-                activityLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800"
+            {/* HORIZONTAL TAB KATEGORI AKTIVITAS (SCROLLABLE) */}
+            <div className="flex gap-2 overflow-x-auto py-3 no-scrollbar border-b border-slate-200">
+              {(
+                [
+                  { id: "ALL", label: "Semua Aktivitas", icon: "📋" },
+                  { id: "OPERASIONAL", label: "Operasional", icon: "🚜" },
+                  { id: "LOGISTIK", label: "Logistik & Pakan", icon: "📦" },
+                  { id: "STRUKTURAL", label: "Struktural & Kandang", icon: "🏗️" },
+                  { id: "SISTEM", label: "Sistem & Alur", icon: "⚙️" },
+                ] as Array<{ id: ActivityCategory; label: string; icon: string }>
+              ).map((tab) => {
+                const isSelected = activityCategoryFilter === tab.id;
+                const count =
+                  tab.id === "ALL"
+                    ? activityLogs.length
+                    : activityLogs.filter(
+                        (l) => getActivityCategory(l.activityType) === tab.id
+                      ).length;
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActivityCategoryFilter(tab.id)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-2xl px-3.5 py-2 text-xs font-black transition active:scale-95 ${
+                      isSelected
+                        ? "bg-emerald-700 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
                   >
-                    <div>
-                      <span className="font-black text-emerald-700">
-                        [{log.activityType}]
-                      </span>{" "}
-                      <span>{log.note}</span>
-                    </div>
-                    <span className="ml-2 shrink-0 font-mono text-[11px] text-slate-400">
-                      {new Date(log.performedAt).toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <span>{tab.icon}</span>
+                    <span>{tab.label}</span>
+                    <span
+                      className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                        isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {count}
                     </span>
-                  </div>
-                ))
-              )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* DAFTAR LOG AKTIVITAS */}
+            <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
+              {(() => {
+                const filteredLogs = activityLogs.filter((log) => {
+                  if (activityCategoryFilter === "ALL") return true;
+                  return getActivityCategory(log.activityType) === activityCategoryFilter;
+                });
+
+                if (filteredLogs.length === 0) {
+                  return (
+                    <div className="p-8 text-center text-sm font-bold text-slate-400">
+                      Tidak ada catatan aktivitas di kategori ini.
+                    </div>
+                  );
+                }
+
+                return filteredLogs.map((log) => {
+                  const category = getActivityCategory(log.activityType);
+                  const badgeColor =
+                    category === "OPERASIONAL"
+                      ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                      : category === "LOGISTIK"
+                      ? "bg-amber-100 text-amber-900 border-amber-300"
+                      : category === "STRUKTURAL"
+                      ? "bg-sky-100 text-sky-900 border-sky-300"
+                      : "bg-purple-100 text-purple-900 border-purple-300";
+
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex items-start justify-between rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`rounded-lg border px-1.5 py-0.5 text-[10px] font-black uppercase ${badgeColor}`}
+                          >
+                            {category}
+                          </span>
+                          <span className="font-mono text-[11px] font-black text-slate-600">
+                            [{log.activityType}]
+                          </span>
+                        </div>
+                        <div className="mt-1 text-slate-900 text-sm font-bold leading-snug">
+                          {log.note}
+                        </div>
+                      </div>
+                      <span className="shrink-0 font-mono text-[11px] text-slate-400">
+                        {new Date(log.performedAt).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>

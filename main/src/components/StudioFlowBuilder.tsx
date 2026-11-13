@@ -343,6 +343,18 @@ export function StudioFlowBuilder({
         })),
       },
     });
+
+    await localDb.activityLogs.put({
+      id: `log-flow-${Date.now()}`,
+      moduleId: activeModule.id,
+      containerId: "system",
+      activityType: "MODULE_FLOW_UPDATE",
+      quantity: nodes.length,
+      note: `Update alur Lego diagram modul ${activeModule.name} (${nodes.length} blok, ${edges.length} koneksi)`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
     setSaveNotice(`Flow "${activeModule.name}" berhasil disimpan!`);
     setTimeout(() => setSaveNotice(null), 3000);
   };
@@ -395,6 +407,18 @@ export function StudioFlowBuilder({
       },
     };
     await localDb.farmModules.put(newModule);
+
+    await localDb.activityLogs.put({
+      id: `log-mod-crt-${Date.now()}`,
+      moduleId: id,
+      containerId: "system",
+      activityType: "MODULE_CREATE",
+      quantity: 1,
+      note: `Buat modul baru: ${newModName.trim()} (${newModCategory} - ${newModTracking})`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
     setSelectedModuleId(id);
     setNewModName("");
     setShowNewModal(false);
@@ -416,6 +440,18 @@ export function StudioFlowBuilder({
       status: "VACANT",
       sortOrder: nextOrder,
     });
+
+    await localDb.activityLogs.put({
+      id: `log-slot-crt-${Date.now()}`,
+      moduleId: cageSet.moduleId,
+      containerId: newSlotId,
+      activityType: "CONTAINER_CREATE",
+      quantity: 1,
+      note: `Tambah +1 Slot kandang ke ${cageSet.name}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
     setSaveNotice(`+1 Slot Kandang ditambahkan ke ${cageSet.name} (Histori aman!)`);
     setTimeout(() => setSaveNotice(null), 3000);
   };
@@ -459,6 +495,17 @@ export function StudioFlowBuilder({
         });
       }
       await localDb.containers.bulkPut(childSlots);
+
+      await localDb.activityLogs.put({
+        id: `log-set-crt-${Date.now()}`,
+        moduleId: mod.id,
+        containerId: containerId,
+        activityType: "CONTAINER_CREATE",
+        quantity: newContainerSlotCount,
+        note: `Daftarkan area set baru: ${newContainerName.trim()} (${newContainerSlotCount} slot)`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
     } else {
       // Buat Wadah Komunal / Batch (POND / CUSTOM)
       await localDb.containers.put({
@@ -483,6 +530,17 @@ export function StudioFlowBuilder({
         consecutiveZeroYieldDays: 0,
         isRecommendedForCut: false,
         isActive: true,
+      });
+
+      await localDb.activityLogs.put({
+        id: `log-pond-crt-${Date.now()}`,
+        moduleId: mod.id,
+        containerId: containerId,
+        activityType: "CONTAINER_CREATE",
+        quantity: newContainerBatchPop,
+        note: `Daftarkan wadah komunal baru: ${newContainerName.trim()} (${newContainerBatchPop} ekor/unit)`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
       });
     }
 
