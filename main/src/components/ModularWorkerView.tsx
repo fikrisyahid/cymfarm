@@ -373,29 +373,16 @@ export function ModularWorkerView({
         </div>
 
         {/* Action Button untuk Tambah/Ubah Populasi */}
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-4">
           <button
             onClick={() => {
               setPopChangeType("ADD");
               setPopChangeAmount(1);
               setShowPopulationModal(true);
             }}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 py-2.5 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95 transition"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-xs font-black text-slate-800 hover:bg-slate-100 active:scale-95 transition shadow-2xs"
           >
-            <Plus className="h-4 w-4 text-emerald-700" />
-            <span>+ Tambah Bibit / Ternak</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setPopChangeType("SUBTRACT");
-              setPopChangeAmount(1);
-              setShowPopulationModal(true);
-            }}
-            disabled={currentPopulation <= 0}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-slate-50 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition"
-          >
-            <span>- Potong / Kurang</span>
+            <span>Update Jumlah Ternak / Bibit</span>
           </button>
         </div>
       </div>

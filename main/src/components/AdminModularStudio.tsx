@@ -333,7 +333,7 @@ export function AdminModularStudio() {
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-700 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95"
                     >
                       <Plus className="h-4 w-4 text-emerald-700" />
-                      <span>+ Tambah Wadah</span>
+                      <span>Tambah Wadah</span>
                     </button>
                     <button
                       onClick={() => handleOpenEditModule(m)}

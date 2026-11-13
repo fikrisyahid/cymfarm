@@ -18,7 +18,11 @@ export default function AnalisaPage() {
   }, []);
 
   const logs = useLiveQuery(
-    () => localDb.activityLogs.reverse().toArray(),
+    async () => {
+      const all = await localDb.activityLogs.toArray();
+      // Sort descending berdasarkan waktu dilakukan terbaru (ISO 8601 string sortable)
+      return all.sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
+    },
     [],
     []
   );
