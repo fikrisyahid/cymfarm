@@ -44,7 +44,27 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Upsert farm modules
+    // 2. Upsert module categories & ensure defaults if empty
+    if (Array.isArray(moduleCategories) && moduleCategories.length > 0) {
+      for (const cat of moduleCategories) {
+        await db
+          .insert(schema.farmModuleCategories)
+          .values({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon || "🌱",
+          })
+          .onConflictDoUpdate({
+            target: schema.farmModuleCategories.id,
+            set: {
+              name: cat.name,
+              icon: cat.icon || "🌱",
+            },
+          });
+      }
+    }
+
+    // 3. Upsert farm modules
     if (Array.isArray(modules) && modules.length > 0) {
       for (const m of modules) {
         await db
@@ -70,7 +90,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Upsert containers
+    // 4. Upsert containers
     if (Array.isArray(containers) && containers.length > 0) {
       for (const c of containers) {
         await db
