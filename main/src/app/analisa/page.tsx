@@ -109,8 +109,8 @@ export default function AnalisaPage() {
             )}
           </div>
 
-          {/* Quick Filter Pills */}
-          <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
+          {/* Quick Filter Pills (Scrollable horizontally without visible scrollbar bar) */}
+          <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar py-1">
             <button
               onClick={() => setSelectedFilter("ALL")}
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
