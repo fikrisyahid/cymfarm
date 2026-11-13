@@ -854,7 +854,7 @@ export function StudioFlowBuilder({
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Modern Category Selector */}
+                {/* Modern Category Selector: Scrollable Vertikal ke Bawah (No Truncate) */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
@@ -869,7 +869,7 @@ export function StudioFlowBuilder({
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1 rounded-2xl border border-slate-200 bg-slate-50/50 p-2">
                     {activeModuleCategories.map((c) => {
                       const isSelected = newModCategory === c.id;
                       return (
@@ -877,20 +877,21 @@ export function StudioFlowBuilder({
                           type="button"
                           key={c.id}
                           onClick={() => setNewModCategory(c.id)}
-                          className={`flex items-center gap-2 rounded-2xl border-2 p-2.5 text-left transition active:scale-95 ${
+                          className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition active:scale-98 ${
                             isSelected
-                              ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20"
-                              : "border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300"
+                              ? "border-emerald-600 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                              : "border-slate-200 bg-white text-slate-800 hover:bg-slate-100"
                           }`}
                         >
-                          <span className="text-xl shrink-0">{c.icon}</span>
-                          <span
-                            className={`text-xs font-black truncate leading-tight ${
-                              isSelected ? "text-emerald-950" : "text-slate-800"
-                            }`}
-                          >
-                            {c.name}
-                          </span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-xl shrink-0">{c.icon}</span>
+                            <span className="text-xs font-black break-words leading-tight">
+                              {c.name}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <Check className="h-4 w-4 text-emerald-700 shrink-0" />
+                          )}
                         </button>
                       );
                     })}
@@ -1583,7 +1584,7 @@ export function StudioFlowBuilder({
                     + Buat Baru
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1 rounded-2xl border border-slate-200 bg-slate-50/50 p-2">
                   {activeModuleCategories.map((c) => {
                     const isSelected = editModCategory === c.id;
                     return (
@@ -1591,20 +1592,21 @@ export function StudioFlowBuilder({
                         type="button"
                         key={c.id}
                         onClick={() => setEditModCategory(c.id)}
-                        className={`flex items-center gap-2 rounded-2xl border-2 p-2.5 text-left transition active:scale-95 ${
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition active:scale-98 ${
                           isSelected
-                            ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-500/20"
-                            : "border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300"
+                            ? "border-emerald-600 bg-emerald-50 text-emerald-950 font-black shadow-xs"
+                            : "border-slate-200 bg-white text-slate-800 hover:bg-slate-100"
                         }`}
                       >
-                        <span className="text-xl shrink-0">{c.icon}</span>
-                        <span
-                          className={`text-xs font-black truncate leading-tight ${
-                            isSelected ? "text-emerald-950" : "text-slate-800"
-                          }`}
-                        >
-                          {c.name}
-                        </span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-xl shrink-0">{c.icon}</span>
+                          <span className="text-xs font-black break-words leading-tight">
+                            {c.name}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-emerald-700 shrink-0" />
+                        )}
                       </button>
                     );
                   })}
