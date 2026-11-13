@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { QrScannerModal } from "./QrScannerModal";
+import { undoActivityLog } from "@/lib/activity-undo";
 
 interface ModularWorkerViewProps {
   containers: LocalContainer[];
@@ -195,8 +196,9 @@ export function ModularWorkerView({
     });
 
     // Catat ke Activity Log
+    const newLogId = `log-pop-${Date.now()}`;
     await localDb.activityLogs.put({
-      id: `log-pop-${Date.now()}`,
+      id: newLogId,
       moduleId: currentContainer.moduleId,
       containerId: currentContainer.id,
       subjectId: currentSubject?.id,
@@ -208,7 +210,17 @@ export function ModularWorkerView({
       syncedToCloud: false,
     });
 
-    toast.success(`📊 Populasi ${currentContainer.name} diubah menjadi ${newPop}!`);
+    toast.success(`📊 Populasi ${currentContainer.name} diubah menjadi ${newPop}!`, {
+      action: {
+        label: "Batalkan (Undo)",
+        onClick: async () => {
+          const res = await undoActivityLog(newLogId);
+          if (res.success) toast.info(res.message);
+          else toast.error(res.message);
+        },
+      },
+      duration: 6000,
+    });
     setShowPopulationModal(false);
     setPopChangeAmount(1);
     setPopChangeReason("");
@@ -224,8 +236,9 @@ export function ModularWorkerView({
       syncedToCloud: false,
     });
 
+    const newLogId = `log-rtn-${Date.now()}`;
     await localDb.activityLogs.put({
-      id: `log-rtn-${Date.now()}`,
+      id: newLogId,
       moduleId: currentContainer.moduleId,
       containerId: currentContainer.id,
       subjectId: currentSubject.id,
@@ -236,10 +249,20 @@ export function ModularWorkerView({
       syncedToCloud: false,
     });
 
-    toast.success(`✅ ${currentModule?.config.routineActionLabel || "Aksi"} selesai!`);
+    toast.success(`✅ ${currentModule?.config.routineActionLabel || "Aksi"} selesai!`, {
+      action: {
+        label: "Batalkan (Undo)",
+        onClick: async () => {
+          const res = await undoActivityLog(newLogId);
+          if (res.success) toast.info(res.message);
+          else toast.error(res.message);
+        },
+      },
+      duration: 6000,
+    });
   };
 
-  // 2. Eksekusi Tombol Panen Hasil
+  // 3. Eksekusi Tombol Panen Hasil
   const handleHarvestAction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentContainer || !currentSubject) return;
@@ -254,8 +277,9 @@ export function ModularWorkerView({
         syncedToCloud: false,
       });
 
+      const newLogId = `log-hrv-${Date.now()}`;
       await localDb.activityLogs.put({
-        id: `log-hrv-${Date.now()}`,
+        id: newLogId,
         moduleId: currentContainer.moduleId,
         containerId: currentContainer.id,
         subjectId: currentSubject.id,
@@ -267,7 +291,17 @@ export function ModularWorkerView({
         syncedToCloud: false,
       });
 
-      toast.success(`🎉 Berhasil mencatat panen: ${harvestInput} ${currentModule?.config.harvestUnitLabel || ""}!`);
+      toast.success(`🎉 Berhasil mencatat panen: ${harvestInput} ${currentModule?.config.harvestUnitLabel || ""}!`, {
+        action: {
+          label: "Batalkan (Undo)",
+          onClick: async () => {
+            const res = await undoActivityLog(newLogId);
+            if (res.success) toast.info(res.message);
+            else toast.error(res.message);
+          },
+        },
+        duration: 6000,
+      });
     } else {
       // Panen sekali habis (Kosongkan wadah)
       await localDb.subjects.update(currentSubject.id, {
@@ -282,8 +316,9 @@ export function ModularWorkerView({
         syncedToCloud: false,
       });
 
+      const newLogId = `log-trm-${Date.now()}`;
       await localDb.activityLogs.put({
-        id: `log-trm-${Date.now()}`,
+        id: newLogId,
         moduleId: currentContainer.moduleId,
         containerId: currentContainer.id,
         subjectId: currentSubject.id,
@@ -294,7 +329,17 @@ export function ModularWorkerView({
         syncedToCloud: false,
       });
 
-      toast.success(`🎉 Panen total selesai. Wadah ${currentContainer.name} sekarang kosong.`);
+      toast.success(`🎉 Panen total selesai. Wadah ${currentContainer.name} sekarang kosong.`, {
+        action: {
+          label: "Batalkan (Undo)",
+          onClick: async () => {
+            const res = await undoActivityLog(newLogId);
+            if (res.success) toast.info(res.message);
+            else toast.error(res.message);
+          },
+        },
+        duration: 6000,
+      });
     }
 
     setShowHarvestModal(false);

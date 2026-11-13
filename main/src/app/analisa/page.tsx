@@ -4,7 +4,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ensureInitialCleanState, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
-import { Activity, FileText, Search, X } from "lucide-react";
+import { Activity, FileText, Search, X, Undo2 } from "lucide-react";
+import { toast } from "sonner";
+import { undoActivityLog } from "@/lib/activity-undo";
 
 type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "POPULATION_CHANGE" | "MAINTENANCE";
 
@@ -12,6 +14,23 @@ export default function AnalisaPage() {
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("ALL");
+  const [undoingLogId, setUndoingLogId] = useState<string | null>(null);
+
+  const handleUndo = async (logId: string) => {
+    if (!window.confirm("Batalkan (Undo) aksi aktivitas ini? Status atau populasi terkait akan dikembalikan ke kondisi sebelumnya.")) {
+      return;
+    }
+
+    setUndoingLogId(logId);
+    const res = await undoActivityLog(logId);
+    setUndoingLogId(null);
+
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
+  };
 
   useEffect(() => {
     ensureInitialCleanState().then(() => setReady(true));
@@ -216,24 +235,37 @@ export default function AnalisaPage() {
                     </div>
                   </div>
 
-                  {(isHarvest || isPopulation) && log.quantity !== undefined && (
-                    <div className="text-right shrink-0">
-                      <div
-                        className={`text-base font-black ${
-                          isHarvest
-                            ? "text-amber-900"
-                            : Number(log.quantity) > 0
-                            ? "text-blue-900"
-                            : "text-slate-700"
-                        }`}
-                      >
-                        {Number(log.quantity) > 0 ? `+${log.quantity}` : log.quantity}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {(isHarvest || isPopulation) && log.quantity !== undefined && (
+                      <div className="text-right">
+                        <div
+                          className={`text-base font-black ${
+                            isHarvest
+                              ? "text-amber-900"
+                              : Number(log.quantity) > 0
+                              ? "text-blue-900"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          {Number(log.quantity) > 0 ? `+${log.quantity}` : log.quantity}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">
+                          {log.unit || "Ekor / Unit"}
+                        </div>
                       </div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase">
-                        {log.unit || "Ekor / Unit"}
-                      </div>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Tombol Undo */}
+                    <button
+                      onClick={() => handleUndo(log.id)}
+                      disabled={undoingLogId === log.id}
+                      className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-black text-slate-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:scale-95 transition disabled:opacity-50"
+                      title="Batalkan aktivitas ini (Undo)"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Undo</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
