@@ -21,6 +21,7 @@ export default function LapanganPage() {
     []
   );
   const subjects = useLiveQuery(() => localDb.subjects.toArray(), [], []);
+  const modules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
 
   if (!seeded) {
     return (
@@ -43,6 +44,7 @@ export default function LapanganPage() {
       <WorkerQrView
         containers={containers}
         subjects={subjects}
+        modules={modules}
         selectedCode={selectedCode}
         onSelectCode={(code) => setSelectedCode(code)}
         selectedDate={selectedDate}

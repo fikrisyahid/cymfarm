@@ -16,12 +16,14 @@ import {
   localDb,
   type LocalContainer,
   type LocalSubject,
+  type LocalFarmModule,
 } from "@/lib/offline-db";
 import { toast } from "sonner";
 
 interface WorkerQrViewProps {
   containers: LocalContainer[];
   subjects: LocalSubject[];
+  modules?: LocalFarmModule[];
   selectedCode: string;
   onSelectCode: (code: string) => void;
   selectedDate?: string;
@@ -30,6 +32,7 @@ interface WorkerQrViewProps {
 export function WorkerQrView({
   containers,
   subjects,
+  modules = [],
   selectedCode,
   onSelectCode,
   selectedDate,
@@ -86,6 +89,26 @@ export function WorkerQrView({
     (c) => c.containerType === "CAGE_SLOT" && c.status === "VACANT"
   );
 
+  // Ambil konfigurasi dinamis dari modul yang terkait dengan container aktif
+  const currentModule = modules.find((m) => m.id === activeContainer?.moduleId);
+  const dailyNode = currentModule?.flowGraph?.nodes?.find(
+    (n) => n.data.blockType === "DAILY_ROUTINE"
+  );
+  const yieldNode = currentModule?.flowGraph?.nodes?.find(
+    (n) => n.data.blockType === "RECURRING_YIELD"
+  );
+
+  const feedSingleLabel = dailyNode?.data.config?.singleActionLabel || "Kasih Makan";
+  const feedBatchLabel =
+    dailyNode?.data.config?.batchActionLabel ||
+    `Kasih Makan Semua (${activeContainer?.name || "Set"})`;
+
+  const yieldSingleLabel = yieldNode?.data.config?.singleActionLabel || "Ada Telur";
+  const yieldBatchLabel =
+    yieldNode?.data.config?.batchActionLabel ||
+    `Panen Semua Telur di Set Ini`;
+  const yieldUnit = yieldNode?.data.config?.unitLabel || "butir";
+
   const handleFeedAllActive = async () => {
     if (!activeContainer) return;
     const activeSlots = childSlots.filter((s) => s.status === "ACTIVE");
@@ -107,14 +130,49 @@ export function WorkerQrView({
           subjectId: occupant.id,
           activityType: "FEED",
           quantity: 1,
-          note: `Kasih makan ${activeContainer.name} (${slot.name})`,
+          note: `${feedSingleLabel} ${activeContainer.name} (${slot.name})`,
           performedAt: nowIso,
           syncedToCloud: false,
         });
       }
     }
 
-    triggerToast(`🍚 ${activeSlots.length} ayam sudah diberi makan!`);
+    triggerToast(`🍚 ${activeSlots.length} slot selesai: ${feedSingleLabel}!`);
+  };
+
+  const handleHarvestAllActive = async () => {
+    if (!activeContainer) return;
+    const activeSlots = childSlots.filter((s) => s.status === "ACTIVE");
+    const nowIso = new Date().toISOString();
+    let countHarvested = 0;
+
+    for (const slot of activeSlots) {
+      const occupant = subjects.find(
+        (sub) => sub.containerId === slot.id && sub.isActive
+      );
+      if (occupant) {
+        countHarvested += 1;
+        await localDb.subjects.update(occupant.id, {
+          eggHarvestedToday: true,
+          lastEggDate: targetDateStr,
+          consecutiveZeroYieldDays: 0,
+          isRecommendedForCut: false,
+        });
+        await localDb.activityLogs.put({
+          id: `log-egg-batch-${slot.id}-${Date.now()}`,
+          moduleId: slot.moduleId,
+          containerId: slot.id,
+          subjectId: occupant.id,
+          activityType: "EGG_HARVEST",
+          quantity: 1,
+          note: `${yieldSingleLabel} massal 1 set: ${activeContainer.name} (${slot.name})`,
+          performedAt: nowIso,
+          syncedToCloud: false,
+        });
+      }
+    }
+
+    triggerToast(`🥚 Panen massal selesai! ${countHarvested} ${yieldUnit} tercatat.`);
   };
 
   const handleToggleFeedSlot = async (slot: LocalContainer, e: React.MouseEvent) => {
@@ -425,14 +483,22 @@ export function WorkerQrView({
       <div className="p-3">
         {activeContainer?.containerType === "CAGE_SET" && (
           <>
-            {/* Tombol Kasih Makan Semua di Set Ini */}
-            <div className="mb-3">
+            {/* Tombol Aksi Massal 1 Set (Kasih Makan & Panen Semua Telur) */}
+            <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 onClick={handleFeedAllActive}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-3.5 text-base font-black text-white shadow active:scale-98"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-3.5 px-3 text-sm sm:text-base font-black text-white shadow active:scale-98 hover:bg-emerald-800"
               >
-                <Utensils className="h-5 w-5" />
-                <span>Kasih Makan Semua ({activeContainer.name})</span>
+                <Utensils className="h-5 w-5 shrink-0" />
+                <span className="truncate">{feedBatchLabel}</span>
+              </button>
+
+              <button
+                onClick={handleHarvestAllActive}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-amber-500 py-3.5 px-3 text-sm sm:text-base font-black text-slate-950 shadow active:scale-98 hover:bg-amber-400"
+              >
+                <Egg className="h-5 w-5 shrink-0" />
+                <span className="truncate">{yieldBatchLabel}</span>
               </button>
             </div>
 
@@ -538,7 +604,9 @@ export function WorkerQrView({
                         }`}
                       >
                         <Utensils className="h-4 w-4 shrink-0" />
-                        <span className="break-words">{isFedToday ? "Sudah Makan" : "Beri Makan"}</span>
+                        <span className="break-words">
+                          {isFedToday ? "Sudah Makan" : feedSingleLabel}
+                        </span>
                       </button>
 
                       <button
@@ -550,7 +618,9 @@ export function WorkerQrView({
                         }`}
                       >
                         <Egg className="h-4 w-4 shrink-0" />
-                        <span className="break-words">{isEggToday ? "ADA TELUR" : "Ada Telur?"}</span>
+                        <span className="break-words">
+                          {isEggToday ? `ADA ${yieldUnit.toUpperCase()}` : yieldSingleLabel}
+                        </span>
                       </button>
                     </div>
                   </div>
