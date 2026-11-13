@@ -18,6 +18,11 @@ export default function PakanPage() {
     [],
     []
   );
+  const feedCategories = useLiveQuery(
+    () => localDb.feedCategories.toArray(),
+    [],
+    []
+  );
 
   if (!seeded) {
     return (
@@ -30,7 +35,10 @@ export default function PakanPage() {
   return (
     <AppShell>
       <div className="p-4">
-        <PakanManagementView feedPurchases={feedPurchases || []} />
+        <PakanManagementView
+          feedPurchases={feedPurchases || []}
+          feedCategories={feedCategories || []}
+        />
       </div>
     </AppShell>
   );

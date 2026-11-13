@@ -138,6 +138,7 @@ export type ActivityType =
   | "FEED_PURCHASE_CREATE"
   | "FEED_PURCHASE_UPDATE"
   | "FEED_PURCHASE_DELETE"
+  | "FEED_CATEGORY_CREATE"
   | "CONTAINER_CREATE"
   | "CONTAINER_UPDATE"
   | "MODULE_FLOW_UPDATE"
@@ -156,14 +157,21 @@ export const activityLogs = pgTable("activity_logs", {
 });
 
 /**
- * 5. FEED PURCHASES (Independent Feed & Logistics Management)
+ * 5. FEED PURCHASES & CATEGORIES (Independent Feed & Logistics Management)
  */
-export type FeedCategory = "AYAM" | "IKAN" | "TANAMAN" | "LAINNYA";
+export type FeedCategory = string; // Dynamic custom categories or default: "AYAM" | "IKAN" | "TANAMAN" | "LAINNYA"
+
+export const feedCategories = pgTable("feed_categories", {
+  id: text("id").primaryKey(), // e.g. 'cat-ayam', 'cat-bebek'
+  name: text("name").notNull(), // e.g. 'Pakan Bebek'
+  icon: text("icon").default("🌾").notNull(), // e.g. '🦆'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 export const feedPurchases = pgTable("feed_purchases", {
   id: text("id").primaryKey(),
   feedName: text("feed_name").notNull(), // e.g. 'Pakan Ayam Petelur Karung 25kg'
-  category: text("category").$type<FeedCategory>().default("AYAM").notNull(),
+  category: text("category").default("AYAM").notNull(),
   weightKg: numeric("weight_kg", { precision: 8, scale: 2 }).notNull(), // e.g. 25.00
   priceIdr: integer("price_idr"), // Optional price
   purchasedAt: timestamp("purchased_at").defaultNow().notNull(),

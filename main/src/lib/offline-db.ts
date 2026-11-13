@@ -76,6 +76,12 @@ export interface LocalActivityLog {
   syncedToCloud: boolean;
 }
 
+export interface LocalFeedCategory {
+  id: string;
+  name: string;
+  icon: string;
+}
+
 export interface LocalFeedPurchase {
   id: string;
   feedName: string;
@@ -85,6 +91,13 @@ export interface LocalFeedPurchase {
   purchasedAt: string;
   notes?: string;
 }
+
+export const DEFAULT_FEED_CATEGORIES: LocalFeedCategory[] = [
+  { id: "AYAM", name: "Pakan Ayam", icon: "🐔" },
+  { id: "IKAN", name: "Pakan Lele / Ikan", icon: "🐟" },
+  { id: "TANAMAN", name: "Nutrisi Tanaman", icon: "🥬" },
+  { id: "LAINNYA", name: "Lainnya", icon: "🌾" },
+];
 
 export function getActivityCategory(activityType: ActivityType): ActivityCategory {
   switch (activityType) {
@@ -99,6 +112,7 @@ export function getActivityCategory(activityType: ActivityType): ActivityCategor
     case "FEED_PURCHASE_CREATE":
     case "FEED_PURCHASE_UPDATE":
     case "FEED_PURCHASE_DELETE":
+    case "FEED_CATEGORY_CREATE":
       return "LOGISTIK";
     case "MAINTENANCE_SET":
     case "MAINTENANCE_RESOLVED":
@@ -120,6 +134,7 @@ export class CymFarmOfflineDB extends Dexie {
   subjects!: Table<LocalSubject, string>;
   activityLogs!: Table<LocalActivityLog, string>;
   feedPurchases!: Table<LocalFeedPurchase, string>;
+  feedCategories!: Table<LocalFeedCategory, string>;
 
   constructor() {
     super("cymfarm_offline_db");
@@ -129,6 +144,7 @@ export class CymFarmOfflineDB extends Dexie {
       subjects: "id, moduleId, containerId, isActive, isRecommendedForCut",
       activityLogs: "id, moduleId, containerId, subjectId, activityType, performedAt, syncedToCloud",
       feedPurchases: "id, category, purchasedAt",
+      feedCategories: "id",
     });
   }
 }
@@ -158,6 +174,11 @@ export async function ensureInitialFarmSeed() {
         });
       }
     }
+    // Ensure default feed categories exist even if farmModules already seeded
+    const existingCatCount = await localDb.feedCategories.count();
+    if (existingCatCount === 0) {
+      await localDb.feedCategories.bulkPut(DEFAULT_FEED_CATEGORIES);
+    }
     return;
   }
 
@@ -167,4 +188,5 @@ export async function ensureInitialFarmSeed() {
   await localDb.subjects.bulkPut(subjectsData as LocalSubject[]);
   await localDb.feedPurchases.bulkPut(feedPurchasesData as LocalFeedPurchase[]);
   await localDb.activityLogs.bulkPut(activityLogsData as LocalActivityLog[]);
+  await localDb.feedCategories.bulkPut(DEFAULT_FEED_CATEGORIES);
 }

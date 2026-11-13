@@ -19,8 +19,10 @@ import Link from "next/link";
 import {
   localDb,
   getActivityCategory,
+  DEFAULT_FEED_CATEGORIES,
   type LocalActivityLog,
   type LocalContainer,
+  type LocalFeedCategory,
   type LocalFeedPurchase,
   type LocalFarmModule,
   type LocalSubject,
@@ -33,6 +35,7 @@ interface AnalyticsAndFeedViewProps {
   containers: LocalContainer[];
   subjects: LocalSubject[];
   feedPurchases: LocalFeedPurchase[];
+  feedCategories?: LocalFeedCategory[];
   activityLogs: LocalActivityLog[];
 }
 
@@ -41,6 +44,7 @@ export function AnalyticsAndFeedView({
   containers,
   subjects,
   feedPurchases,
+  feedCategories = [],
   activityLogs,
 }: AnalyticsAndFeedViewProps) {
   // Modal State: "AUTO_RULE_<modId>" | "TIMER_<modId>" | "FEED_FORM" | "FEED_HISTORY" | "ACTIVITY_LOGS" | "TERMINATED_HISTORY" | null
@@ -652,10 +656,11 @@ export function AnalyticsAndFeedView({
                   onChange={(e) => setFeedCategoryInput(e.target.value as FeedCategory)}
                   className="mt-1 w-full rounded-2xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-base font-bold text-slate-900"
                 >
-                  <option value="AYAM">🐔 Pakan Ayam</option>
-                  <option value="IKAN">🐟 Pakan Lele / Ikan</option>
-                  <option value="TANAMAN">🥬 Nutrisi Tanaman</option>
-                  <option value="LAINNYA">🌾 Lainnya</option>
+                  {(feedCategories.length > 0 ? feedCategories : DEFAULT_FEED_CATEGORIES).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

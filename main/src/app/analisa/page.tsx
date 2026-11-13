@@ -30,6 +30,11 @@ export default function AnalisaPage() {
     [],
     []
   );
+  const feedCategories = useLiveQuery(
+    () => localDb.feedCategories.toArray(),
+    [],
+    []
+  );
 
   if (!seeded) {
     return (
@@ -47,6 +52,7 @@ export default function AnalisaPage() {
           containers={containers}
           subjects={subjects}
           feedPurchases={feedPurchases}
+          feedCategories={feedCategories}
           activityLogs={activityLogs}
         />
       </div>
