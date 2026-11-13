@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
-import { Camera, X, AlertCircle } from "lucide-react";
+import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
+import { Camera, X, AlertCircle, Upload, Check } from "lucide-react";
 
 interface QrScannerModalProps {
   onScanSuccess: (code: string) => void;
@@ -12,6 +12,39 @@ interface QrScannerModalProps {
 export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleProcessQrText = (decodedText: string) => {
+    let code = decodedText.trim();
+    if (code.startsWith("cymfarm://container/")) {
+      code = code.replace("cymfarm://container/", "");
+    } else if (code.includes("loc=")) {
+      try {
+        const url = new URL(code, "https://cymfarm.local");
+        code = url.searchParams.get("loc") || code;
+      } catch {
+        // use code directly
+      }
+    }
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(console.error);
+    }
+    onScanSuccess(code);
+  };
+
+  // Upload/pilih gambar file QR (Bekerja 100% tanpa https / kamera)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const html5QrCode = new Html5Qrcode("cymfarm-file-reader-hidden");
+      const decodedText = await html5QrCode.scanFile(file, true);
+      handleProcessQrText(decodedText);
+    } catch (err: any) {
+      setErrorMessage("Tidak dapat membaca QR code dari gambar ini. Pastikan gambar jelas.");
+    }
+  };
 
   useEffect(() => {
     const scannerId = "cymfarm-qr-reader";
@@ -29,20 +62,7 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
       );
 
       scanner.render(
-        (decodedText) => {
-          // Parse format: cymfarm://container/KANDANG-A1 or plain KANDANG-A1 or url
-          let code = decodedText.trim();
-          if (code.startsWith("cymfarm://container/")) {
-            code = code.replace("cymfarm://container/", "");
-          } else if (code.includes("loc=")) {
-            const url = new URL(code, "https://cymfarm.local");
-            code = url.searchParams.get("loc") || code;
-          }
-
-          // Cleanup scanner before callback
-          scanner.clear().catch(console.error);
-          onScanSuccess(code);
-        },
+        (decodedText) => handleProcessQrText(decodedText),
         (error) => {
           // ignore minor scan errors
         }
@@ -58,7 +78,7 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
         scannerRef.current.clear().catch(() => {});
       }
     };
-  }, [onScanSuccess]);
+  }, []);
 
   return (
     <div
@@ -87,11 +107,11 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
         </p>
 
         {errorMessage ? (
-          <div className="rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50 p-6 text-center text-rose-800 space-y-2">
-            <AlertCircle className="mx-auto h-8 w-8 text-rose-600" />
+          <div className="rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50 p-4 text-center text-rose-800 space-y-2">
+            <AlertCircle className="mx-auto h-7 w-7 text-rose-600" />
             <p className="text-xs font-black">{errorMessage}</p>
             <p className="text-[11px] font-bold text-slate-500">
-              Pastikan Anda telah mengizinkan izin kamera di browser Anda.
+              Browser mewajibkan HTTPS atau Localhost untuk membuka kamera langsung.
             </p>
           </div>
         ) : (
@@ -99,6 +119,28 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
             <div id="cymfarm-qr-reader" className="w-full" />
           </div>
         )}
+
+        {/* Hidden File Scanner Container for html5-qrcode */}
+        <div id="cymfarm-file-reader-hidden" className="hidden" />
+
+        {/* Alternatif Upload Gambar QR (Bisa di HTTP non-localhost) */}
+        <div className="pt-1">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-600 bg-emerald-50 py-2.5 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95 transition"
+          >
+            <Upload className="h-4 w-4 text-emerald-700" />
+            <span>Pilih File Gambar / Screenshot QR</span>
+          </button>
+        </div>
 
         <button
           onClick={onClose}

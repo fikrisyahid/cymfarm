@@ -353,26 +353,18 @@ export function ModularWorkerView({
           <ChevronLeft className="h-6 w-6 stroke-[3]" />
         </button>
 
-        {/* Center: Tap to open Grid Selector */}
-        <button
-          onClick={() => setShowGridModal(true)}
-          className="text-center min-w-0 flex-1 hover:bg-slate-50 p-1.5 rounded-2xl transition active:scale-98"
-          title="Klik untuk buka daftar semua kandang"
-        >
-          <div className="flex items-center justify-center gap-1.5">
-            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950">
-              {currentModule?.name || "Sistem Ternak"}
-            </span>
-            <LayoutGrid className="h-3.5 w-3.5 text-slate-400" />
-          </div>
+        {/* Center Carousel: Title Info */}
+        <div className="text-center min-w-0 flex-1 px-1">
+          <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950">
+            {currentModule?.name || "Sistem Ternak"}
+          </span>
           <h2 className="text-xl font-black text-slate-900 truncate mt-0.5">
             {currentContainer.name}
           </h2>
           <div className="text-xs font-bold text-slate-500">
-            Kode: <span className="font-black text-slate-800">{currentContainer.code}</span> • {activeIndex + 1} dari {displayContainers.length}{" "}
-            <span className="text-emerald-700 font-black underline ml-1">Pilih</span>
+            Kode: <span className="font-black text-slate-800">{currentContainer.code}</span> • {activeIndex + 1} dari {displayContainers.length}
           </div>
-        </button>
+        </div>
 
         <button
           onClick={handleNext}
