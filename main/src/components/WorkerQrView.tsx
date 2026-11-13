@@ -24,6 +24,7 @@ interface WorkerQrViewProps {
   subjects: LocalSubject[];
   selectedCode: string;
   onSelectCode: (code: string) => void;
+  selectedDate?: string;
 }
 
 export function WorkerQrView({
@@ -31,6 +32,7 @@ export function WorkerQrView({
   subjects,
   selectedCode,
   onSelectCode,
+  selectedDate,
 }: WorkerQrViewProps) {
   const scanTargets = containers.filter(
     (c) =>
@@ -44,7 +46,7 @@ export function WorkerQrView({
   const [evacuateTargetSlotId, setEvacuateTargetSlotId] = useState<string>("");
   const [fastingCountInput, setFastingCountInput] = useState<number>(20);
 
-  const todayDateStr = getTodayDateStr();
+  const targetDateStr = selectedDate || getTodayDateStr();
 
   const triggerToast = (msg: string, type: "success" | "info" | "warning" = "success") => {
     if (type === "warning") {
@@ -92,7 +94,7 @@ export function WorkerQrView({
       if (occupant) {
         await localDb.subjects.update(occupant.id, {
           fedToday: true,
-          lastFedDate: todayDateStr,
+          lastFedDate: targetDateStr,
         });
         await localDb.activityLogs.put({
           id: `log-feed-${slot.id}-${Date.now()}`,
@@ -120,12 +122,12 @@ export function WorkerQrView({
     if (!occupant) return;
 
     const isFedToday =
-      Boolean(occupant.fedToday) && occupant.lastFedDate === todayDateStr;
+      Boolean(occupant.fedToday) && occupant.lastFedDate === targetDateStr;
     const nextFed = !isFedToday;
 
     await localDb.subjects.update(occupant.id, {
       fedToday: nextFed,
-      lastFedDate: nextFed ? todayDateStr : undefined,
+      lastFedDate: nextFed ? targetDateStr : undefined,
     });
 
     if (nextFed) {
@@ -156,13 +158,13 @@ export function WorkerQrView({
 
     const isHarvestedToday =
       Boolean(occupant.eggHarvestedToday) &&
-      occupant.lastEggDate === todayDateStr;
+      occupant.lastEggDate === targetDateStr;
     const nextEggState = !isHarvestedToday;
     const newZeroDays = nextEggState ? 0 : occupant.consecutiveZeroYieldDays;
 
     await localDb.subjects.update(occupant.id, {
       eggHarvestedToday: nextEggState,
-      lastEggDate: nextEggState ? todayDateStr : undefined,
+      lastEggDate: nextEggState ? targetDateStr : undefined,
       consecutiveZeroYieldDays: newZeroDays,
       isRecommendedForCut: newZeroDays >= 7,
     });
@@ -348,10 +350,10 @@ export function WorkerQrView({
 
                 const isFedToday =
                   Boolean(occupant?.fedToday) &&
-                  occupant?.lastFedDate === todayDateStr;
+                  occupant?.lastFedDate === targetDateStr;
                 const isEggToday =
                   Boolean(occupant?.eggHarvestedToday) &&
-                  occupant?.lastEggDate === todayDateStr;
+                  occupant?.lastEggDate === targetDateStr;
 
                 if (isMaintenance) {
                   return (

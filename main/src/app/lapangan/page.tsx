@@ -9,6 +9,7 @@ import { WorkerQrView } from "@/components/WorkerQrView";
 export default function LapanganPage() {
   const [seeded, setSeeded] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>("SET-1A");
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     ensureInitialFarmSeed().then(() => setSeeded(true));
@@ -36,12 +37,15 @@ export default function LapanganPage() {
     <AppShell
       activeContainerCode={selectedCode}
       onSelectContainerCode={(code) => setSelectedCode(code)}
+      selectedDate={selectedDate}
+      onSelectDate={(date) => setSelectedDate(date)}
     >
       <WorkerQrView
         containers={containers}
         subjects={subjects}
         selectedCode={selectedCode}
         onSelectCode={(code) => setSelectedCode(code)}
+        selectedDate={selectedDate}
       />
     </AppShell>
   );

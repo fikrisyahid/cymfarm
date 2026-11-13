@@ -26,21 +26,26 @@ interface AppShellProps {
   children: React.ReactNode;
   activeContainerCode?: string;
   onSelectContainerCode?: (code: string) => void;
+  selectedDate?: string;
+  onSelectDate?: (date: string) => void;
 }
 
 export function AppShell({
   children,
   activeContainerCode,
   onSelectContainerCode,
+  selectedDate,
+  onSelectDate,
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { session } = useAuthSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  // Kunci scroll halaman belakang (Body Scroll Lock) saat sidebar terbuka
+  // Kunci scroll halaman belakang (Body Scroll Lock) saat sidebar atau datepicker terbuka
   useEffect(() => {
-    if (sidebarOpen) {
+    if (sidebarOpen || datePickerOpen) {
       document.body.style.overflow = "hidden";
       document.body.style.touchAction = "none";
     } else {
@@ -51,15 +56,21 @@ export function AppShell({
       document.body.style.overflow = "";
       document.body.style.touchAction = "";
     };
-  }, [sidebarOpen]);
+  }, [sidebarOpen, datePickerOpen]);
+
+  // Tanggal yang sedang aktif (default hari ini YYYY-MM-DD)
+  const activeDateObj = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date();
 
   // Format hari dan tanggal lengkap bahasa Indonesia (tanpa singkatan)
-  const todayFormatted = new Intl.DateTimeFormat("id-ID", {
+  const displayFormattedDate = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(new Date());
+  }).format(activeDateObj);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isPastDate = selectedDate && selectedDate !== todayStr;
 
   // Ambil data lokasi untuk sidebar
   const containers = useLiveQuery(
@@ -106,13 +117,21 @@ export function AppShell({
         </button>
 
         <div className="text-center">
-          {/* Hari dan Tanggal Lengkap (Tanpa Singkatan) */}
-          <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-500">
-            <Calendar className="h-3.5 w-3.5 text-emerald-700" />
-            <span>{todayFormatted}</span>
-          </div>
+          {/* Hari dan Tanggal Lengkap (Bisa diklik untuk buka popup date picker) */}
+          <button
+            onClick={() => onSelectDate && setDatePickerOpen(true)}
+            className={`flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-black transition ${
+              isPastDate
+                ? "bg-amber-100 text-amber-950 border border-amber-300"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <Calendar className={`h-3.5 w-3.5 ${isPastDate ? "text-amber-700" : "text-emerald-700"}`} />
+            <span>{displayFormattedDate}</span>
+            {isPastDate && <span className="text-[10px] bg-amber-200 px-1.5 rounded-md">Mode Revisi</span>}
+          </button>
           {/* Judul Halaman / Lokasi Saat Ini */}
-          <div className="text-lg font-black leading-tight text-slate-900">
+          <div className="text-lg font-black leading-tight text-slate-900 mt-0.5">
             {pathname.startsWith("/lapangan")
               ? activeContainerCode || "Area Kandang"
               : pathname.startsWith("/analisa")
@@ -258,6 +277,71 @@ export function AppShell({
               >
                 <LogOut className="h-5 w-5" />
                 <span>Keluar Akun (Logout)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 5. POPUP FULL LAYAR DATE PICKER DIMMED */}
+      {datePickerOpen && (
+        <div
+          onClick={() => setDatePickerOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-opacity backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-emerald-700" />
+                <h3 className="text-lg font-black text-slate-900">
+                  Pilih Tanggal / Mundur Hari
+                </h3>
+              </div>
+              <button
+                onClick={() => setDatePickerOpen(false)}
+                className="rounded-xl border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs font-bold text-slate-500">
+              Pilih tanggal sebelumnya untuk memeriksa atau merevisi data pemberian pakan dan panen telur pada hari tersebut.
+            </p>
+
+            <div className="mt-4">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                Pilih Tanggal:
+              </label>
+              <input
+                type="date"
+                value={selectedDate || todayStr}
+                max={todayStr}
+                onChange={(e) => {
+                  if (onSelectDate) onSelectDate(e.target.value);
+                  setDatePickerOpen(false);
+                }}
+                className="mt-1.5 w-full rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-lg font-black text-slate-900 focus:border-emerald-700 focus:outline-none"
+              />
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => {
+                  if (onSelectDate) onSelectDate(todayStr);
+                  setDatePickerOpen(false);
+                }}
+                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800 active:scale-95"
+              >
+                Kembali ke Hari Ini
+              </button>
+              <button
+                onClick={() => setDatePickerOpen(false)}
+                className="rounded-2xl border-2 border-slate-300 bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 active:scale-95"
+              >
+                Tutup
               </button>
             </div>
           </div>
