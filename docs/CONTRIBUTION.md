@@ -21,7 +21,8 @@
 | **Update Package** | `bun run update` | Memperbarui package di `/main` |
 | **Cek TypeScript** | `bun run typecheck` | Menjalankan `tsc --noEmit` untuk memeriksa tipe di `/main` |
 | **Build Produksi** | `bun run build` | Sync `.env` dan menjalankan production build Next.js |
-| **Generate Migrasi Drizzle** | `bun run db:generate` | Membuat file migrasi SQL dari skema Drizzle |
-| **Push Skema ke Supabase** | `bun run db:push` | Mendorong perubahan skema langsung ke database Supabase |
+| **Generate Migrasi Drizzle** | `bun run db:generate` | Membuat file migrasi SQL baru dari perubahan `schema.ts` ke `/main/drizzle` |
+| **Jalankan Migrasi Database** | `bun run db:migrate` | Menjalankan custom runner `ops/migrate.ts` (pre-flight checks, PG extensions, & Drizzle migrator) |
+| **Push Skema ke Supabase** | `bun run db:push` | Mendorong perubahan skema langsung ke database Supabase (prototyping/dev) |
 | **Buka Drizzle Studio** | `bun run db:studio` | Membuka GUI database Drizzle Studio |
 | **Jalankan Pipeline CI** | `bun run ci` | Menjalankan script `ops/ci.sh` (sync env, install, typecheck, build) |

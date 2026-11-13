@@ -24,6 +24,7 @@ cymfarm/
 ├── ops/                  # Script operasional & CI/CD
 │   ├── sync-env.ts       # Otomatis menyinkronkan /.env ke /main/.env.local
 │   ├── pkg.ts            # Wrapper install/remove/update package ke /main dari root
+│   ├── migrate.ts        # Database migration orchestrator (pre-flight checks, extensions, Drizzle migrator)
 │   └── ci.sh             # Pipeline verifikasi CI/CD
 ├── docs/                 # Dokumentasi proyek
 │   ├── ARCHITECTURE.md   # Dokumen arsitektur ini
@@ -72,3 +73,18 @@ Skema database terletak di `main/src/db/schema.ts` dan terdiri dari 5 tabel inti
 5. **`feed_purchases` (Log Pembelian Pakan & Estimasi Habis)**
    - Mencatat tanggal pembelian pakan, berat dalam kilogram (misal `25 kg`), harga, dan catatan.
    - Tidak memblokir aksi pemberian makan harian pekerja; digunakan untuk menghitung estimasi tanggal habis pakan berdasarkan jumlah ayam aktif dan rata-rata konsumsi historis.
+6. **`feed_categories` (Kategori Pakan Dinamis)**
+   - Menyimpan kategori pakan kustom (misal: Pelet 781, Dedak Bekatul, Maggot Segar, Jagung Giling) beserta emoji ikon.
+7. **`farm_module_categories` (Kategori Modul Dinamis)**
+   - Menyimpan kategori modul dinamis (Peternakan, Perikanan, Tanaman, Jamur, Lainnya/Umum) yang dapat ditambah mandiri oleh admin.
+
+---
+
+## 5. Strategi Migrasi Database (Custom Migration Orchestrator)
+Drizzle ORM memiliki keterbatasan pada CLI bawaan (`drizzle-kit migrate`) saat berhadapan dengan PostgreSQL Extensions, pre-flight checks, dan Transaction Mode connection pooling Supabase (port `6543`).
+
+CymFarm menggunakan **Custom Migration Runner** di [`ops/migrate.ts`](../ops/migrate.ts):
+- **Otomatis dijalankan via `bun run db:migrate` dari root**.
+- **Pre-flight Assertion**: Memastikan koneksi pooler aman (`prepare: false`, single dedicated connection `max: 1`) dan membuat ekstensi krusial (`uuid-ossp`, `pgcrypto`) jika belum ada.
+- **Drizzle Programmatic Migrator**: Menjalankan migrasi Drizzle dari folder `main/drizzle` secara aman tanpa dependensi interaktif terminal.
+- **Post-flight Verification**: Memverifikasi tabel di schema `public` dan status pencatatan migrasi di tabel `drizzle.__drizzle_migrations`.
