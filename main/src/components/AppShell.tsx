@@ -106,40 +106,60 @@ export function AppShell({
           </div>
         </div>
 
-        {/* Sync Trigger Button */}
-        <button
-          onClick={() => triggerSync()}
-          disabled={isSyncing}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 active:scale-95 transition disabled:opacity-50"
-          title="Sinkronisasi Cloud Supabase"
-        >
-          {isSyncing ? (
-            <RefreshCw className="h-5 w-5 animate-spin text-emerald-700" />
-          ) : (
-            <Cloud className="h-5 w-5 text-emerald-700" />
+        {/* Right side actions: Studio shortcut (if ADMIN) & Sync Button */}
+        <div className="flex items-center gap-2">
+          {session?.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition active:scale-95 ${
+                pathname.startsWith("/admin")
+                  ? "border-emerald-700 bg-emerald-50 text-emerald-800 font-black shadow-xs"
+                  : "border-slate-200 text-slate-700 hover:bg-slate-100"
+              }`}
+              title="Admin Studio"
+              aria-label="Admin Studio"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
           )}
-        </button>
+
+          <button
+            onClick={() => triggerSync()}
+            disabled={isSyncing}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 active:scale-95 transition disabled:opacity-50"
+            title="Sinkronisasi Cloud Supabase"
+          >
+            {isSyncing ? (
+              <RefreshCw className="h-5 w-5 animate-spin text-emerald-700" />
+            ) : (
+              <Cloud className="h-5 w-5 text-emerald-700" />
+            )}
+          </button>
+        </div>
       </header>
 
       {/* 2. MAIN CONTENT (STRETCH FOR TABLET & DESKTOP) */}
       <main className="p-4 sm:p-6 lg:p-8 pb-24 w-full max-w-7xl mx-auto">{children}</main>
 
-      {/* 3. BOTTOM BAR DENGAN SCAN QR CENTER FLOATING */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 backdrop-blur shadow-lg items-center justify-around px-2">
-        <Link
-          href="/lapangan"
-          className={`flex flex-1 flex-col items-center justify-center py-1 transition ${
-            pathname.startsWith("/lapangan")
-              ? "text-emerald-700 font-black"
-              : "text-slate-500 font-bold hover:text-slate-800"
-          }`}
-        >
-          <Home className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5">Lapangan</span>
-        </Link>
+      {/* 3. BOTTOM BAR DENGAN SCAN QR CENTER FLOATING (SIMETRIS PRESISI) */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 backdrop-blur shadow-lg items-center px-4">
+        {/* Left Side: Lapangan */}
+        <div className="flex-1 flex justify-center">
+          <Link
+            href="/lapangan"
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              pathname.startsWith("/lapangan")
+                ? "text-emerald-700 font-black"
+                : "text-slate-500 font-bold hover:text-slate-800"
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5">Lapangan</span>
+          </Link>
+        </div>
 
         {/* Center Floating Action Button (FAB) Scan QR */}
-        <div className="relative -top-5 flex flex-col items-center px-2">
+        <div className="relative -top-5 flex flex-col items-center shrink-0 px-4">
           <button
             onClick={() => setScannerOpen(true)}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-xl hover:bg-emerald-800 active:scale-95 transition border-4 border-white"
@@ -153,31 +173,20 @@ export function AppShell({
           </span>
         </div>
 
-        <Link
-          href="/analisa"
-          className={`flex flex-1 flex-col items-center justify-center py-1 transition ${
-            pathname.startsWith("/analisa")
-              ? "text-emerald-700 font-black"
-              : "text-slate-500 font-bold hover:text-slate-800"
-          }`}
-        >
-          <BarChart3 className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5">Riwayat</span>
-        </Link>
-
-        {session?.role === "ADMIN" && (
+        {/* Right Side: Riwayat */}
+        <div className="flex-1 flex justify-center">
           <Link
-            href="/admin"
-            className={`flex flex-1 flex-col items-center justify-center py-1 transition ${
-              pathname.startsWith("/admin")
+            href="/analisa"
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              pathname.startsWith("/analisa")
                 ? "text-emerald-700 font-black"
                 : "text-slate-500 font-bold hover:text-slate-800"
             }`}
           >
-            <Settings className="h-5 w-5" />
-            <span className="text-[10px] mt-0.5">Studio</span>
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5">Riwayat</span>
           </Link>
-        )}
+        </div>
       </nav>
 
       {/* SCANNER MODAL DARI NAVBAR */}
@@ -253,10 +262,25 @@ export function AppShell({
               )}
             </div>
 
-            <div className="border-t border-slate-200 p-4">
+            <div className="border-t border-slate-200 p-4 space-y-2">
+              {session?.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex w-full items-center justify-center gap-2 rounded-2xl border-2 py-3 text-sm font-black transition ${
+                    pathname.startsWith("/admin")
+                      ? "border-emerald-700 bg-emerald-50 text-emerald-950"
+                      : "border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100"
+                  }`}
+                >
+                  <Settings className="h-4 w-4 text-emerald-700" />
+                  <span>Buka Admin Studio</span>
+                </Link>
+              )}
+
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-rose-200 bg-rose-50 py-3 text-sm font-black text-rose-700"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-rose-200 bg-rose-50 py-3 text-sm font-black text-rose-700 active:scale-95 transition"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Keluar Akun</span>
