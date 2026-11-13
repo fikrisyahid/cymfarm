@@ -37,11 +37,9 @@ export function WorkerQrView({
   onSelectCode,
   selectedDate,
 }: WorkerQrViewProps) {
+  // Semua container utama yang memiliki QR code (bukan slot anak individual CAGE_SLOT)
   const scanTargets = containers.filter(
-    (c) =>
-      c.containerType === "CAGE_SET" ||
-      c.containerType === "POND" ||
-      c.containerType === "QUARANTINE_BUCKET"
+    (c) => c.containerType !== "CAGE_SLOT"
   );
 
   const [maintenanceSlotId, setMaintenanceSlotId] = useState<string | null>(null);

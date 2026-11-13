@@ -19,6 +19,7 @@ import {
   UserCheck,
   Calendar,
   Wheat,
+  Sprout,
   Cloud,
   CheckCircle2,
   RefreshCw,
@@ -86,10 +87,7 @@ export function AppShell({
   );
 
   const scanTargets = (containers || []).filter(
-    (c) =>
-      c.containerType === "CAGE_SET" ||
-      c.containerType === "POND" ||
-      c.containerType === "QUARANTINE_BUCKET"
+    (c) => c.containerType !== "CAGE_SLOT"
   );
 
   const handleLogout = async () => {
@@ -280,6 +278,8 @@ export function AppShell({
                         <Timer className="h-6 w-6 text-amber-600 shrink-0" />
                       ) : isPond ? (
                         <Fish className="h-6 w-6 text-sky-600 shrink-0" />
+                      ) : target.containerType === "CUSTOM" ? (
+                        <Sprout className="h-6 w-6 text-emerald-600 shrink-0" />
                       ) : (
                         <Bird className="h-6 w-6 text-emerald-600 shrink-0" />
                       )}
