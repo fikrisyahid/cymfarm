@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ensureInitialCleanState, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
-import { Activity, Calendar, FileText } from "lucide-react";
+import { Activity, FileText, Search, X } from "lucide-react";
+
+type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "MAINTENANCE";
 
 export default function AnalisaPage() {
   const [ready, setReady] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>("ALL");
 
   useEffect(() => {
     ensureInitialCleanState().then(() => setReady(true));
@@ -18,6 +22,25 @@ export default function AnalisaPage() {
     [],
     []
   );
+
+  const filteredLogs = useMemo(() => {
+    if (!logs) return [];
+    return logs.filter((log) => {
+      // Filter category
+      if (selectedFilter !== "ALL" && log.activityType !== selectedFilter) {
+        return false;
+      }
+      // Filter search
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const noteMatch = (log.note || "").toLowerCase().includes(query);
+        const typeMatch = (log.activityType || "").toLowerCase().includes(query);
+        const unitMatch = (log.unit || "").toLowerCase().includes(query);
+        return noteMatch || typeMatch || unitMatch;
+      }
+      return true;
+    });
+  }, [logs, selectedFilter, searchQuery]);
 
   if (!ready) {
     return (
@@ -30,6 +53,7 @@ export default function AnalisaPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-lg space-y-4 pb-20">
+        {/* Header */}
         <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-xs">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-emerald-700" />
@@ -38,23 +62,91 @@ export default function AnalisaPage() {
             </h2>
           </div>
           <p className="text-xs font-bold text-slate-500 mt-1">
-            Catatan setiap aksi rawat & panen yang dikerjakan keluarga di kandang.
+            Catatan setiap aksi rawat, pakan, & panen yang dikerjakan keluarga di kandang.
           </p>
+
+          {/* Search Box */}
+          <div className="mt-4 relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari aktivitas (contoh: lele, pakan, panen)..."
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl border-2 border-slate-300 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Hapus pencarian"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Filter Pills */}
+          <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              onClick={() => setSelectedFilter("ALL")}
+              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
+                selectedFilter === "ALL"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              Semua ({logs?.length || 0})
+            </button>
+            <button
+              onClick={() => setSelectedFilter("ROUTINE")}
+              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
+                selectedFilter === "ROUTINE"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+              }`}
+            >
+              🍚 Rawat / Pakan
+            </button>
+            <button
+              onClick={() => setSelectedFilter("HARVEST")}
+              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
+                selectedFilter === "HARVEST"
+                  ? "bg-amber-600 text-white"
+                  : "bg-amber-50 text-amber-900 hover:bg-amber-100"
+              }`}
+            >
+              🧺 Panen
+            </button>
+            <button
+              onClick={() => setSelectedFilter("MAINTENANCE")}
+              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
+                selectedFilter === "MAINTENANCE"
+                  ? "bg-rose-600 text-white"
+                  : "bg-rose-50 text-rose-900 hover:bg-rose-100"
+              }`}
+            >
+              ⚠️ Kendala
+            </button>
+          </div>
         </div>
 
-        {(!logs || logs.length === 0) ? (
+        {/* Logs List */}
+        {filteredLogs.length === 0 ? (
           <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-12 text-center">
             <FileText className="mx-auto h-12 w-12 text-slate-300" />
             <h4 className="mt-3 text-base font-black text-slate-700">
-              Belum Ada Catatan Aktivitas
+              {logs?.length === 0 ? "Belum Ada Catatan Aktivitas" : "Tidak Ada Riwayat Yang Cocok"}
             </h4>
             <p className="mt-1 text-xs font-bold text-slate-400">
-              Setiap kali tombol rawat atau panen ditekan di lapangan, catatannya akan muncul di sini.
+              {logs?.length === 0
+                ? "Setiap kali tombol rawat atau panen ditekan di lapangan, catatannya akan muncul di sini."
+                : "Coba ubah kata kunci pencarian atau ganti filter kategori."}
             </p>
           </div>
         ) : (
           <div className="space-y-2.5">
-            {logs.map((log) => {
+            {filteredLogs.map((log) => {
               const dateObj = new Date(log.performedAt);
               const timeStr = dateObj.toLocaleTimeString("id-ID", {
                 hour: "2-digit",
@@ -68,6 +160,7 @@ export default function AnalisaPage() {
 
               const isRoutine = log.activityType === "ROUTINE";
               const isHarvest = log.activityType === "HARVEST";
+              const isMaintenance = log.activityType === "MAINTENANCE";
 
               return (
                 <div
@@ -82,10 +175,12 @@ export default function AnalisaPage() {
                             ? "bg-emerald-100 text-emerald-900"
                             : isHarvest
                             ? "bg-amber-100 text-amber-950"
+                            : isMaintenance
+                            ? "bg-rose-100 text-rose-950"
                             : "bg-slate-100 text-slate-700"
                         }`}
                       >
-                        {log.activityType}
+                        {isRoutine ? "Rawat" : isHarvest ? "Panen" : isMaintenance ? "Kendala" : log.activityType}
                       </span>
                       <span className="text-xs font-bold text-slate-400">
                         {dateStr} • {timeStr}
