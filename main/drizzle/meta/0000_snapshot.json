@@ -1,5 +1,5 @@
 {
-  "id": "5214ff2b-ba5e-436f-8d4a-e192a738e2f6",
+  "id": "9b0f3b25-7e33-4346-b2f7-c17c6fc905ef",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -40,10 +40,16 @@
         },
         "quantity": {
           "name": "quantity",
-          "type": "integer",
+          "type": "numeric(8, 2)",
           "primaryKey": false,
           "notNull": false,
-          "default": 1
+          "default": "'1'"
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "note": {
           "name": "note",
@@ -84,12 +90,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "module_id": {
           "name": "module_id",
           "type": "text",
@@ -108,18 +108,19 @@
           "primaryKey": false,
           "notNull": true
         },
-        "container_type": {
-          "name": "container_type",
-          "type": "text",
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": 1
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'VACANT'"
+          "default": "'ACTIVE'"
         },
         "maintenance_note": {
           "name": "maintenance_note",
@@ -133,12 +134,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -243,8 +238,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "flow_graph": {
-          "name": "flow_graph",
+        "config": {
+          "name": "config",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
@@ -403,50 +398,24 @@
           "notNull": true,
           "default": 1
         },
-        "size_category": {
-          "name": "size_category",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "current_node_id": {
-          "name": "current_node_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "consecutive_zero_yield_days": {
-          "name": "consecutive_zero_yield_days",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "is_recommended_for_cut": {
-          "name": "is_recommended_for_cut",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "timer_started_at": {
-          "name": "timer_started_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "timer_ends_at": {
-          "name": "timer_ends_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "last_routine_date": {
+          "name": "last_routine_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_harvest_date": {
+          "name": "last_harvest_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "entered_at": {
           "name": "entered_at",

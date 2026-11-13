@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Bidirectional Sync Payload:
- * - Client sends pending mutations (activityLogs with syncedToCloud = false, or modified containers/subjects/etc.)
- * - Server applies mutations to PostgreSQL
- * - Server returns the latest complete cloud state of the farm
- */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -24,11 +18,9 @@ export async function POST(req: Request) {
       feedPurchases = [],
     } = body;
 
-    // 1. Process pending activity logs sent from offline client
-    // Handle Last-Write-Wins (LWW) conflict resolution for Delete vs Edit
+    // 1. Process activity logs & deletions
     if (Array.isArray(pendingLogs) && pendingLogs.length > 0) {
       for (const log of pendingLogs) {
-        // Record the immutable event log
         await db
           .insert(schema.activityLogs)
           .values({
@@ -37,52 +29,22 @@ export async function POST(req: Request) {
             containerId: log.containerId,
             subjectId: log.subjectId || null,
             activityType: log.activityType,
-            quantity: log.quantity ?? 1,
+            quantity: log.quantity ? log.quantity.toString() : "1",
+            unit: log.unit || null,
             note: log.note || null,
             performedAt: log.performedAt ? new Date(log.performedAt) : new Date(),
             syncedToCloud: true,
           })
-          .onConflictDoUpdate({
-            target: schema.activityLogs.id,
-            set: {
-              note: log.note || null,
-              quantity: log.quantity ?? 1,
-              syncedToCloud: true,
-            },
-          });
+          .onConflictDoNothing();
 
-        const logPerformedAt = log.performedAt ? new Date(log.performedAt).getTime() : Date.now();
-
-        // Handle Deletions in PostgreSQL (LWW check)
-        if (log.activityType === "FEED_PURCHASE_DELETE") {
-          const targetFeedId = log.subjectId || log.containerId;
-          if (targetFeedId && targetFeedId !== "gudang") {
-            // Check if there was an offline update on this item with a LATER timestamp
-            const updatedPendingFeed = (feedPurchases || []).find(
-              (f: any) => f.id === targetFeedId && f.syncedToCloud === false
-            );
-            const updateTime = updatedPendingFeed?.updatedAt ? new Date(updatedPendingFeed.updatedAt).getTime() : 0;
-            // Only delete if the deletion is newer than the update
-            if (logPerformedAt >= updateTime) {
-              await db.delete(schema.feedPurchases).where(eq(schema.feedPurchases.id, targetFeedId));
-            }
-          }
-        } else if (log.activityType === "CONTAINER_DELETE") {
-          const targetContId = log.containerId;
-          if (targetContId) {
-            const updatedPendingCont = (containers || []).find(
-              (c: any) => c.id === targetContId && c.syncedToCloud === false
-            );
-            const updateTime = updatedPendingCont?.updatedAt ? new Date(updatedPendingCont.updatedAt).getTime() : 0;
-            if (logPerformedAt >= updateTime) {
-              await db.delete(schema.containers).where(eq(schema.containers.id, targetContId));
-            }
-          }
+        // Deletions
+        if (log.activityType === "TERMINATE" && log.containerId) {
+          await db.delete(schema.containers).where(eq(schema.containers.id, log.containerId));
         }
       }
     }
 
-    // 2. Upsert any modules sent from client
+    // 2. Upsert farm modules
     if (Array.isArray(modules) && modules.length > 0) {
       for (const m of modules) {
         await db
@@ -92,48 +54,33 @@ export async function POST(req: Request) {
             name: m.name,
             category: m.category,
             trackingMode: m.trackingMode,
-            description: m.description,
-            flowGraph: m.flowGraph,
+            description: m.description || null,
+            config: m.config,
           })
           .onConflictDoUpdate({
             target: schema.farmModules.id,
             set: {
               name: m.name,
               category: m.category,
-              description: m.description,
-              flowGraph: m.flowGraph,
+              description: m.description || null,
+              config: m.config,
               updatedAt: new Date(),
             },
           });
       }
     }
 
-    // 3. Upsert module categories
-    if (Array.isArray(moduleCategories) && moduleCategories.length > 0) {
-      for (const c of moduleCategories) {
-        await db
-          .insert(schema.farmModuleCategories)
-          .values({
-            id: c.id,
-            name: c.name,
-            icon: c.icon || "🌾",
-          })
-          .onConflictDoNothing();
-      }
-    }
-
-    // 4. Upsert containers
+    // 3. Upsert containers
     if (Array.isArray(containers) && containers.length > 0) {
       for (const c of containers) {
         await db
           .insert(schema.containers)
           .values({
             id: c.id,
-            parentId: c.parentId || null,
             moduleId: c.moduleId,
             name: c.name,
             code: c.code,
-            containerType: c.containerType,
+            capacity: c.capacity ?? 1,
             status: c.status,
             maintenanceNote: c.maintenanceNote || null,
             sortOrder: c.sortOrder ?? 0,
@@ -143,6 +90,7 @@ export async function POST(req: Request) {
             set: {
               name: c.name,
               code: c.code,
+              capacity: c.capacity ?? 1,
               status: c.status,
               maintenanceNote: c.maintenanceNote || null,
               sortOrder: c.sortOrder ?? 0,
@@ -151,7 +99,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 5. Upsert subjects
+    // 4. Upsert subjects
     if (Array.isArray(subjects) && subjects.length > 0) {
       for (const s of subjects) {
         await db
@@ -162,74 +110,23 @@ export async function POST(req: Request) {
             containerId: s.containerId,
             label: s.label,
             populationCount: s.populationCount ?? 1,
-            sizeCategory: s.sizeCategory || null,
-            currentNodeId: s.currentNodeId,
-            consecutiveZeroYieldDays: s.consecutiveZeroYieldDays ?? 0,
-            isRecommendedForCut: s.isRecommendedForCut ?? false,
             isActive: s.isActive ?? true,
-            timerStartedAt: s.timerStartedAt ? new Date(s.timerStartedAt) : null,
-            timerEndsAt: s.timerEndsAt ? new Date(s.timerEndsAt) : null,
+            lastRoutineDate: s.lastRoutineDate || null,
+            lastHarvestDate: s.lastHarvestDate || null,
           })
           .onConflictDoUpdate({
             target: schema.subjects.id,
             set: {
-              containerId: s.containerId,
               populationCount: s.populationCount ?? 1,
-              sizeCategory: s.sizeCategory || null,
-              currentNodeId: s.currentNodeId,
-              consecutiveZeroYieldDays: s.consecutiveZeroYieldDays ?? 0,
-              isRecommendedForCut: s.isRecommendedForCut ?? false,
               isActive: s.isActive ?? true,
-              timerStartedAt: s.timerStartedAt ? new Date(s.timerStartedAt) : null,
-              timerEndsAt: s.timerEndsAt ? new Date(s.timerEndsAt) : null,
+              lastRoutineDate: s.lastRoutineDate || null,
+              lastHarvestDate: s.lastHarvestDate || null,
             },
           });
       }
     }
 
-    // 6. Upsert feed categories
-    if (Array.isArray(feedCategories) && feedCategories.length > 0) {
-      for (const fc of feedCategories) {
-        await db
-          .insert(schema.feedCategories)
-          .values({
-            id: fc.id,
-            name: fc.name,
-            icon: fc.icon || "🌾",
-          })
-          .onConflictDoNothing();
-      }
-    }
-
-    // 7. Upsert feed purchases
-    if (Array.isArray(feedPurchases) && feedPurchases.length > 0) {
-      for (const fp of feedPurchases) {
-        await db
-          .insert(schema.feedPurchases)
-          .values({
-            id: fp.id,
-            feedName: fp.feedName,
-            category: fp.category || "AYAM",
-            weightKg: fp.weightKg.toString(),
-            priceIdr: fp.priceIdr || null,
-            purchasedAt: fp.purchasedAt ? new Date(fp.purchasedAt) : new Date(),
-            notes: fp.notes || null,
-          })
-          .onConflictDoUpdate({
-            target: schema.feedPurchases.id,
-            set: {
-              feedName: fp.feedName,
-              category: fp.category || "AYAM",
-              weightKg: fp.weightKg.toString(),
-              priceIdr: fp.priceIdr || null,
-              purchasedAt: fp.purchasedAt ? new Date(fp.purchasedAt) : new Date(),
-              notes: fp.notes || null,
-            },
-          });
-      }
-    }
-
-    // 8. Fetch latest state from PostgreSQL to return to client
+    // 5. Fetch clean cloud state to return
     const [
       cloudModules,
       cloudModCats,
@@ -262,54 +159,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: any) {
-    console.error("[CymFarm API Sync Error]:", error);
+    console.error("[CymFarm Sync Error]:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to synchronize data" },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * GET Endpoint for simple read-only fetch of latest PostgreSQL cloud data
- */
-export async function GET() {
-  try {
-    const [
-      cloudModules,
-      cloudModCats,
-      cloudContainers,
-      cloudSubjects,
-      cloudFeedCats,
-      cloudFeedPurchases,
-      cloudLogs,
-    ] = await Promise.all([
-      db.select().from(schema.farmModules),
-      db.select().from(schema.farmModuleCategories),
-      db.select().from(schema.containers).orderBy(schema.containers.sortOrder),
-      db.select().from(schema.subjects),
-      db.select().from(schema.feedCategories),
-      db.select().from(schema.feedPurchases),
-      db.select().from(schema.activityLogs).limit(500),
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      data: {
-        modules: cloudModules,
-        moduleCategories: cloudModCats,
-        containers: cloudContainers,
-        subjects: cloudSubjects,
-        feedCategories: cloudFeedCats,
-        feedPurchases: cloudFeedPurchases,
-        activityLogs: cloudLogs,
-      },
-    });
-  } catch (error: any) {
-    console.error("[CymFarm API Sync GET Error]:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch cloud data" },
+      { success: false, error: error.message || "Failed to synchronize" },
       { status: 500 }
     );
   }

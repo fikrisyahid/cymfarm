@@ -1,0 +1,422 @@
+"use client";
+
+import React, { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import {
+  localDb,
+  type LocalContainer,
+  type LocalSubject,
+  type LocalFarmModule,
+  getTodayDateStr,
+} from "@/lib/offline-db";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Utensils,
+  Scissors,
+  CheckCircle2,
+  Wrench,
+  AlertTriangle,
+  Plus,
+} from "lucide-react";
+import { toast } from "sonner";
+
+interface ModularWorkerViewProps {
+  containers: LocalContainer[];
+  subjects: LocalSubject[];
+  modules: LocalFarmModule[];
+  selectedCode?: string;
+  onSelectCode: (code: string) => void;
+}
+
+export function ModularWorkerView({
+  containers = [],
+  subjects = [],
+  modules = [],
+  selectedCode,
+  onSelectCode,
+}: ModularWorkerViewProps) {
+  // Hanya ambil container aktif
+  const activeContainers = containers.filter((c) => c.status !== "VACANT");
+
+  const [harvestInput, setHarvestInput] = useState<number>(1);
+  const [showHarvestModal, setShowHarvestModal] = useState(false);
+  const [maintenanceNote, setMaintenanceNote] = useState("");
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+
+  const activeIndex = Math.max(
+    0,
+    activeContainers.findIndex((c) => c.code === selectedCode)
+  );
+  const currentContainer = activeContainers[activeIndex] || activeContainers[0];
+
+  const currentModule = modules.find((m) => m.id === currentContainer?.moduleId);
+  const currentSubject = subjects.find(
+    (s) => s.containerId === currentContainer?.id && s.isActive
+  );
+
+  const todayStr = getTodayDateStr();
+  const isRoutineDoneToday = currentSubject?.lastRoutineDate === todayStr;
+  const isHarvestDoneToday = currentSubject?.lastHarvestDate === todayStr;
+
+  const handlePrev = () => {
+    if (activeIndex > 0) {
+      onSelectCode(activeContainers[activeIndex - 1].code);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeIndex < activeContainers.length - 1) {
+      onSelectCode(activeContainers[activeIndex + 1].code);
+    }
+  };
+
+  // 1. Eksekusi Tombol Rawat Harian
+  const handleRoutineAction = async () => {
+    if (!currentContainer || !currentSubject) return;
+
+    await localDb.subjects.update(currentSubject.id, {
+      lastRoutineDate: todayStr,
+      updatedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    await localDb.activityLogs.put({
+      id: `log-rtn-${Date.now()}`,
+      moduleId: currentContainer.moduleId,
+      containerId: currentContainer.id,
+      subjectId: currentSubject.id,
+      activityType: "ROUTINE",
+      quantity: 1,
+      note: `${currentModule?.config.routineActionLabel || "Perawatan"} pada ${currentContainer.name}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    toast.success(`✅ ${currentModule?.config.routineActionLabel || "Aksi"} selesai!`);
+  };
+
+  // 2. Eksekusi Tombol Panen Hasil
+  const handleHarvestAction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentContainer || !currentSubject) return;
+
+    const harvestType = currentModule?.config.harvestType || "RECURRING";
+
+    if (harvestType === "RECURRING") {
+      // Panen berkala
+      await localDb.subjects.update(currentSubject.id, {
+        lastHarvestDate: todayStr,
+        updatedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
+      await localDb.activityLogs.put({
+        id: `log-hrv-${Date.now()}`,
+        moduleId: currentContainer.moduleId,
+        containerId: currentContainer.id,
+        subjectId: currentSubject.id,
+        activityType: "HARVEST",
+        quantity: Number(harvestInput) || 1,
+        unit: currentModule?.config.harvestUnitLabel || "Unit",
+        note: `Panen ${currentContainer.name}: ${harvestInput} ${currentModule?.config.harvestUnitLabel || ""}`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
+      toast.success(`🎉 Berhasil mencatat panen: ${harvestInput} ${currentModule?.config.harvestUnitLabel || ""}!`);
+    } else {
+      // Panen sekali habis (Kosongkan wadah)
+      await localDb.subjects.update(currentSubject.id, {
+        isActive: false,
+        updatedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
+      await localDb.containers.update(currentContainer.id, {
+        status: "VACANT",
+        updatedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
+      await localDb.activityLogs.put({
+        id: `log-trm-${Date.now()}`,
+        moduleId: currentContainer.moduleId,
+        containerId: currentContainer.id,
+        subjectId: currentSubject.id,
+        activityType: "TERMINATE",
+        quantity: currentSubject.populationCount,
+        note: `Panen total & kosongkan wadah ${currentContainer.name}`,
+        performedAt: new Date().toISOString(),
+        syncedToCloud: false,
+      });
+
+      toast.success(`🎉 Panen total selesai. Wadah ${currentContainer.name} sekarang kosong.`);
+    }
+
+    setShowHarvestModal(false);
+  };
+
+  // 3. Lapor Kerusakan / Kendala
+  const handleReportMaintenance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentContainer) return;
+
+    await localDb.containers.update(currentContainer.id, {
+      status: "MAINTENANCE",
+      maintenanceNote: maintenanceNote.trim() || "Kendala teknis di lapangan",
+      updatedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    await localDb.activityLogs.put({
+      id: `log-mnt-${Date.now()}`,
+      moduleId: currentContainer.moduleId,
+      containerId: currentContainer.id,
+      activityType: "MAINTENANCE",
+      quantity: 1,
+      note: `Lapor kendala: ${maintenanceNote.trim()}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    setShowMaintenanceModal(false);
+    toast.warning(`Wadah ${currentContainer.name} ditandai butuh perbaikan.`);
+  };
+
+  if (!currentContainer) {
+    return (
+      <div className="mx-auto max-w-lg p-6 text-center">
+        <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-12">
+          <h3 className="text-xl font-black text-slate-800">Tidak Ada Area Terdaftar</h3>
+          <p className="mt-2 text-xs font-bold text-slate-500">
+            Silakan masuk ke halaman Admin untuk membuat sistem ternak & mendaftarkan wadah pertama Anda.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-lg space-y-4 pb-20">
+      {/* 1. CAROUSEL NAVIGASI LOKASI / WADAH */}
+      <div className="flex items-center justify-between gap-2 rounded-3xl border-2 border-slate-300 bg-white p-3 shadow-xs">
+        <button
+          onClick={handlePrev}
+          disabled={activeIndex === 0}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition"
+        >
+          <ChevronLeft className="h-6 w-6 stroke-[3]" />
+        </button>
+
+        <div className="text-center min-w-0 flex-1">
+          <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950">
+            {currentModule?.name || "Sistem Ternak"}
+          </span>
+          <h2 className="text-xl font-black text-slate-900 truncate mt-0.5">
+            {currentContainer.name}
+          </h2>
+          <div className="text-xs font-bold text-slate-500">
+            Kode: <span className="font-black text-slate-800">{currentContainer.code}</span> • {activeIndex + 1} dari {activeContainers.length}
+          </div>
+        </div>
+
+        <button
+          onClick={handleNext}
+          disabled={activeIndex === activeContainers.length - 1}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition"
+        >
+          <ChevronRight className="h-6 w-6 stroke-[3]" />
+        </button>
+      </div>
+
+      {/* 2. KARTU STATUS POPULASI */}
+      <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 text-center shadow-sm">
+        <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+          Populasi Saat Ini
+        </span>
+        <div className="text-4xl font-black text-slate-900 mt-1">
+          {currentSubject?.populationCount || 0}{" "}
+          <span className="text-base font-bold text-slate-500">Unit</span>
+        </div>
+      </div>
+
+      {/* 3. TOMBOL RAKSASA #1: PERAWATAN HARIAN */}
+      <button
+        onClick={handleRoutineAction}
+        className={`flex min-h-[96px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
+          isRoutineDoneToday
+            ? "border-emerald-600 bg-emerald-50 text-emerald-950"
+            : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+        }`}
+      >
+        <div className="flex items-center gap-2 text-xl font-black">
+          {isRoutineDoneToday ? (
+            <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+          ) : (
+            <Utensils className="h-7 w-7" />
+          )}
+          <span>{currentModule?.config.routineActionLabel || "Perawatan Harian"}</span>
+        </div>
+        <span className="text-xs font-bold opacity-80">
+          {isRoutineDoneToday
+            ? "✅ Sudah dikerjakan hari ini (Tap lagi jika ingin update)"
+            : "Belum dikerjakan hari ini — Tap tombol ini"}
+        </span>
+      </button>
+
+      {/* 4. TOMBOL RAKSASA #2: PANEN / HASIL */}
+      <button
+        onClick={() => setShowHarvestModal(true)}
+        className="flex min-h-[96px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 border-amber-500 bg-amber-400 p-5 text-center text-slate-950 transition active:scale-98 shadow-md hover:bg-amber-300"
+      >
+        <div className="flex items-center gap-2 text-xl font-black">
+          <Scissors className="h-7 w-7" />
+          <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
+        </div>
+        <span className="text-xs font-bold opacity-80">
+          {currentModule?.config.harvestType === "RECURRING"
+            ? `Panen berkala (${currentModule?.config.harvestUnitLabel || "Unit"})`
+            : "Panen total sekaligus (Kosongkan wadah)"}
+        </span>
+      </button>
+
+      {/* 5. LAPOR KENDALA / RUSAK */}
+      <div className="pt-2">
+        <button
+          onClick={() => setShowMaintenanceModal(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3.5 text-xs font-black text-slate-600 hover:bg-slate-100 active:scale-95 transition"
+        >
+          <Wrench className="h-4 w-4 text-rose-600" />
+          <span>Lapor Kendala / Kerusakan Wadah Ini</span>
+        </button>
+      </div>
+
+      {/* MODAL PANEN */}
+      {showHarvestModal && (
+        <div
+          onClick={() => setShowHarvestModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleHarvestAction}
+            className="w-full max-w-sm rounded-3xl border-2 border-amber-500 bg-white p-6 shadow-2xl space-y-4"
+          >
+            <div className="text-center">
+              <h3 className="text-xl font-black text-slate-900">
+                {currentModule?.config.harvestActionLabel}
+              </h3>
+              <p className="text-xs font-bold text-slate-500 mt-1">
+                Wadah: {currentContainer.name}
+              </p>
+            </div>
+
+            {currentModule?.config.harvestType === "RECURRING" && (
+              <div className="rounded-2xl bg-amber-50 p-4 text-center border border-amber-200">
+                <label className="block text-xs font-black text-slate-700">
+                  Jumlah Hasil ({currentModule?.config.harvestUnitLabel || "Unit"})
+                </label>
+                <div className="mt-2 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setHarvestInput((v) => Math.max(1, v - 1))}
+                    className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    required
+                    value={harvestInput}
+                    onChange={(e) => setHarvestInput(Number(e.target.value))}
+                    className="w-24 rounded-xl border-2 border-amber-400 bg-white py-2 text-center text-2xl font-black text-slate-900 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setHarvestInput((v) => v + 1)}
+                    className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHarvestModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-amber-500 py-3 text-sm font-black text-slate-950 hover:bg-amber-400"
+              >
+                Simpan Panen
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL LAPOR KENDALA */}
+      {showMaintenanceModal && (
+        <div
+          onClick={() => setShowMaintenanceModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleReportMaintenance}
+            className="w-full max-w-sm rounded-3xl border-2 border-rose-600 bg-white p-6 shadow-2xl space-y-4"
+          >
+            <div className="text-center">
+              <AlertTriangle className="mx-auto h-8 w-8 text-rose-600" />
+              <h3 className="text-xl font-black text-slate-900 mt-2">
+                Lapor Kendala Wadah
+              </h3>
+              <p className="text-xs font-bold text-slate-500 mt-0.5">
+                {currentContainer.name} ({currentContainer.code})
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-slate-700">
+                Catatan Kendala (Bocor / Rusak / Mati)
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={maintenanceNote}
+                onChange={(e) => setMaintenanceNote(e.target.value)}
+                placeholder="Contoh: Talang bocor atau kawat patah..."
+                className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-600"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMaintenanceModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-rose-600 py-3 text-sm font-black text-white hover:bg-rose-700"
+              >
+                Tandai Rusak
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

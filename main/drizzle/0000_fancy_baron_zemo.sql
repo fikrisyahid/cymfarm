@@ -4,7 +4,8 @@ CREATE TABLE "activity_logs" (
 	"container_id" text NOT NULL,
 	"subject_id" text,
 	"activity_type" text NOT NULL,
-	"quantity" integer DEFAULT 1,
+	"quantity" numeric(8, 2) DEFAULT '1',
+	"unit" text,
 	"note" text,
 	"performed_at" timestamp DEFAULT now() NOT NULL,
 	"synced_to_cloud" boolean DEFAULT true NOT NULL
@@ -12,15 +13,13 @@ CREATE TABLE "activity_logs" (
 --> statement-breakpoint
 CREATE TABLE "containers" (
 	"id" text PRIMARY KEY NOT NULL,
-	"parent_id" text,
 	"module_id" text NOT NULL,
 	"name" text NOT NULL,
 	"code" text NOT NULL,
-	"container_type" text NOT NULL,
-	"status" text DEFAULT 'VACANT' NOT NULL,
+	"capacity" integer DEFAULT 1 NOT NULL,
+	"status" text DEFAULT 'ACTIVE' NOT NULL,
 	"maintenance_note" text,
 	"sort_order" integer DEFAULT 0 NOT NULL,
-	"metadata" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -37,7 +36,7 @@ CREATE TABLE "farm_modules" (
 	"category" text NOT NULL,
 	"tracking_mode" text NOT NULL,
 	"description" text,
-	"flow_graph" jsonb NOT NULL,
+	"config" jsonb NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -65,13 +64,9 @@ CREATE TABLE "subjects" (
 	"container_id" text NOT NULL,
 	"label" text NOT NULL,
 	"population_count" integer DEFAULT 1 NOT NULL,
-	"size_category" text,
-	"current_node_id" text NOT NULL,
-	"consecutive_zero_yield_days" integer DEFAULT 0 NOT NULL,
-	"is_recommended_for_cut" boolean DEFAULT false NOT NULL,
-	"timer_started_at" timestamp,
-	"timer_ends_at" timestamp,
 	"is_active" boolean DEFAULT true NOT NULL,
+	"last_routine_date" text,
+	"last_harvest_date" text,
 	"entered_at" timestamp DEFAULT now() NOT NULL,
 	"terminated_at" timestamp
 );
