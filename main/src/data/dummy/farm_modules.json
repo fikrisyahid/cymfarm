@@ -1,0 +1,179 @@
+[
+  {
+    "id": "mod-ayam-petelur",
+    "name": "Ayam Petelur (Kandang Atas Kolam)",
+    "category": "LIVESTOCK",
+    "trackingMode": "INDIVIDUAL",
+    "description": "1 Kandang 1 Ayam di atas kolam lele. Tracking pakan, panen telur harian, & evaluasi otomatis ayam afkir.",
+    "flowGraph": {
+      "nodes": [
+        {
+          "id": "ayam-node-1",
+          "position": { "x": 40, "y": 120 },
+          "data": {
+            "label": "1. Masuk Ayam ke Slot",
+            "blockType": "INIT_POPULATE",
+            "description": "1 Slot Kandang = 1 Ekor Ayam Produktif"
+          }
+        },
+        {
+          "id": "ayam-node-2",
+          "position": { "x": 300, "y": 60 },
+          "data": {
+            "label": "2. Kasih Makan Harian",
+            "blockType": "DAILY_ROUTINE",
+            "description": "Auto-skip slot kandang kosong atau maintenance",
+            "config": { "autoSkipVacant": true }
+          }
+        },
+        {
+          "id": "ayam-node-3",
+          "position": { "x": 300, "y": 200 },
+          "data": {
+            "label": "3. Ceklis Panen Telur",
+            "blockType": "RECURRING_YIELD",
+            "description": "Tap nomor kandang yang ada telurnya hari ini"
+          }
+        },
+        {
+          "id": "ayam-node-4",
+          "position": { "x": 580, "y": 120 },
+          "data": {
+            "label": "4. Deteksi Stop Bertelur",
+            "blockType": "AUTO_RULE",
+            "description": "Peringatan jika 0 telur >= 7 hari berturut-turut",
+            "config": { "zeroYieldThresholdDays": 7 }
+          }
+        },
+        {
+          "id": "ayam-node-5",
+          "position": { "x": 850, "y": 120 },
+          "data": {
+            "label": "5. Afkir / Potong Ayam",
+            "blockType": "TERMINATE_HARVEST",
+            "description": "Potong ayam & ubah slot kandang jadi Kosong (Vacant)"
+          }
+        }
+      ],
+      "edges": [
+        { "id": "e-a1-2", "source": "ayam-node-1", "target": "ayam-node-2", "label": "Aktif" },
+        { "id": "e-a1-3", "source": "ayam-node-1", "target": "ayam-node-3", "label": "Produktif" },
+        { "id": "e-a3-4", "source": "ayam-node-3", "target": "ayam-node-4", "label": "Evaluasi" },
+        { "id": "e-a4-5", "source": "ayam-node-4", "target": "ayam-node-5", "label": "Stop Nelor" }
+      ]
+    },
+    "createdAt": "2026-11-01T00:00:00.000Z",
+    "updatedAt": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "mod-lele-konsumsi",
+    "name": "Lele Konsumsi (Bawah Kandang Ayam)",
+    "category": "AQUACULTURE",
+    "trackingMode": "BATCH",
+    "description": "3 Kolam Lele (1 ukuran per kolam), makan otomatis dari kotoran ayam, sortir ukuran, & puasa 3 hari di ember sebelum potong.",
+    "flowGraph": {
+      "nodes": [
+        {
+          "id": "lele-node-1",
+          "position": { "x": 40, "y": 120 },
+          "data": {
+            "label": "1. Tebar Kolam Lele",
+            "blockType": "INIT_POPULATE",
+            "description": "Pakan alami dari kotoran ayam di atas kolam"
+          }
+        },
+        {
+          "id": "lele-node-2",
+          "position": { "x": 310, "y": 120 },
+          "data": {
+            "label": "2. Sortir Ukuran Kolam",
+            "blockType": "SORT_TRANSFER",
+            "description": "Pisah ukuran Kecil (Kolam 1), Sedang (Kolam 2), Besar (Kolam 3)"
+          }
+        },
+        {
+          "id": "lele-node-3",
+          "position": { "x": 590, "y": 120 },
+          "data": {
+            "label": "3. Ember Puasa (3 Hari)",
+            "blockType": "TIMER_QUARANTINE",
+            "description": "Karantina air bersih 72 jam sebelum dipotong",
+            "config": { "timerHours": 72 }
+          }
+        },
+        {
+          "id": "lele-node-4",
+          "position": { "x": 860, "y": 120 },
+          "data": {
+            "label": "4. Siap Potong / Pecel Lele",
+            "blockType": "TERMINATE_HARVEST",
+            "description": "Puasa 3 hari selesai, lele bersih & siap dipotong"
+          }
+        }
+      ],
+      "edges": [
+        { "id": "e-l1-2", "source": "lele-node-1", "target": "lele-node-2", "label": "Sortir Mandiri" },
+        { "id": "e-l2-3", "source": "lele-node-2", "target": "lele-node-3", "label": "Pindah Ember" },
+        { "id": "e-l3-4", "source": "lele-node-3", "target": "lele-node-4", "label": "Timer 72 Jam" }
+      ]
+    },
+    "createdAt": "2026-11-01T00:00:00.000Z",
+    "updatedAt": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "mod-hidroponik-pakcoy",
+    "name": "Hidroponik Pakcoy (Sistem NFT)",
+    "category": "PLANT",
+    "trackingMode": "BATCH",
+    "description": "Contoh modul tanaman modular baru. Semai bibit, cek nutrisi harian, timer panen 30 hari.",
+    "flowGraph": {
+      "nodes": [
+        {
+          "id": "pakcoy-node-1",
+          "position": { "x": 40, "y": 120 },
+          "data": {
+            "label": "1. Pindah Tanam Netpot",
+            "blockType": "INIT_POPULATE",
+            "description": "Pindah bibit semai ke pipa talang hidroponik"
+          }
+        },
+        {
+          "id": "pakcoy-node-2",
+          "position": { "x": 320, "y": 120 },
+          "data": {
+            "label": "2. Cek Nutrisi & Siram AB Mix",
+            "blockType": "DAILY_ROUTINE",
+            "description": "Rutin cek PPM & sirkulasi tandon nutrisi",
+            "config": { "autoSkipVacant": true }
+          }
+        },
+        {
+          "id": "pakcoy-node-3",
+          "position": { "x": 600, "y": 120 },
+          "data": {
+            "label": "3. Evaluasi Usia Panen (30 Hari)",
+            "blockType": "AUTO_RULE",
+            "description": "Peringatan otomatis jika usia tanam >= 30 hari",
+            "config": { "zeroYieldThresholdDays": 30 }
+          }
+        },
+        {
+          "id": "pakcoy-node-4",
+          "position": { "x": 880, "y": 120 },
+          "data": {
+            "label": "4. Panen Bersih Sayur",
+            "blockType": "TERMINATE_HARVEST",
+            "description": "Cabut pakcoy dan bersihkan netpot"
+          }
+        }
+      ],
+      "edges": [
+        { "id": "e-p1-2", "source": "pakcoy-node-1", "target": "pakcoy-node-2" },
+        { "id": "e-p2-3", "source": "pakcoy-node-2", "target": "pakcoy-node-3" },
+        { "id": "e-p3-4", "source": "pakcoy-node-3", "target": "pakcoy-node-4" }
+      ]
+    },
+    "createdAt": "2026-11-05T00:00:00.000Z",
+    "updatedAt": "2026-11-05T00:00:00.000Z"
+  }
+]

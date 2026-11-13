@@ -1,0 +1,46 @@
+[
+  {
+    "id": "log-seed-1",
+    "moduleId": "mod-ayam-petelur",
+    "containerId": "slot-1a-1",
+    "subjectId": "subj-ayam-01",
+    "activityType": "FEED",
+    "quantity": 1,
+    "note": "Kasih makan pagi Set 1A",
+    "performedAt": "2026-11-13T07:15:00.000Z",
+    "syncedToCloud": false
+  },
+  {
+    "id": "log-seed-2",
+    "moduleId": "mod-ayam-petelur",
+    "containerId": "slot-1a-1",
+    "subjectId": "subj-ayam-01",
+    "activityType": "EGG_HARVEST",
+    "quantity": 1,
+    "note": "Panen 1 butir telur Kandang #1",
+    "performedAt": "2026-11-13T08:30:00.000Z",
+    "syncedToCloud": false
+  },
+  {
+    "id": "log-seed-3",
+    "moduleId": "mod-ayam-petelur",
+    "containerId": "slot-1a-3",
+    "subjectId": "subj-ayam-03",
+    "activityType": "EGG_HARVEST",
+    "quantity": 1,
+    "note": "Panen 1 butir telur Kandang #3",
+    "performedAt": "2026-11-13T08:31:00.000Z",
+    "syncedToCloud": false
+  },
+  {
+    "id": "log-seed-4",
+    "moduleId": "mod-lele-konsumsi",
+    "containerId": "pond-1",
+    "subjectId": "subj-lele-pond-1",
+    "activityType": "START_FASTING",
+    "quantity": 25,
+    "note": "25 ekor lele dipindahkan ke ember puasa 3 hari",
+    "performedAt": "2026-11-11T09:00:00.000Z",
+    "syncedToCloud": false
+  }
+]

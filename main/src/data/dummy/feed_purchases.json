@@ -1,0 +1,26 @@
+[
+  {
+    "id": "feed-1",
+    "feedName": "Pakan Ayam Petelur Komplit (Karung 25kg)",
+    "weightKg": 25.00,
+    "priceIdr": 215000,
+    "purchasedAt": "2026-10-24T08:00:00.000Z",
+    "notes": "Karung sebelum ini (habis dalam ~14 hari untuk 33 ayam)"
+  },
+  {
+    "id": "feed-2",
+    "feedName": "Pakan Ayam Petelur Komplit (Karung 25kg)",
+    "weightKg": 25.00,
+    "priceIdr": 215000,
+    "purchasedAt": "2026-11-07T08:30:00.000Z",
+    "notes": "Karung aktif saat ini (+ ada stok serep di gudang)"
+  },
+  {
+    "id": "feed-3",
+    "feedName": "Nutrisi Hidroponik AB Mix Sayur Daun (5 Liter)",
+    "weightKg": 5.00,
+    "priceIdr": 85000,
+    "purchasedAt": "2026-11-09T10:15:00.000Z",
+    "notes": "Untuk tandon instalasi Pakcoy"
+  }
+]
