@@ -28,6 +28,7 @@ export interface LocalFarmModule {
   trackingMode: "INDIVIDUAL" | "BATCH";
   description: string;
   flowGraph: FlowGraphDefinition;
+  syncedToCloud?: boolean;
 }
 
 export interface LocalContainer {
@@ -41,6 +42,7 @@ export interface LocalContainer {
   maintenanceNote?: string;
   sortOrder: number;
   sizeGrade?: "SMALL" | "MEDIUM" | "LARGE";
+  syncedToCloud?: boolean;
 }
 
 export interface LocalSubject {
@@ -60,6 +62,7 @@ export interface LocalSubject {
   eggHarvestedToday?: boolean;
   lastFedDate?: string; // YYYY-MM-DD (Auto-resets when calendar day changes!)
   lastEggDate?: string; // YYYY-MM-DD (Auto-resets when calendar day changes!)
+  syncedToCloud?: boolean;
 }
 
 export function getTodayDateStr(): string {
@@ -96,6 +99,7 @@ export interface LocalFeedPurchase {
   priceIdr?: number;
   purchasedAt: string;
   notes?: string;
+  syncedToCloud?: boolean;
 }
 
 export const DEFAULT_FEED_CATEGORIES: LocalFeedCategory[] = [
@@ -154,13 +158,13 @@ export class CymFarmOfflineDB extends Dexie {
 
   constructor() {
     super("cymfarm_offline_db");
-    this.version(1).stores({
-      farmModules: "id, category, trackingMode",
+    this.version(2).stores({
+      farmModules: "id, category, trackingMode, syncedToCloud",
       farmModuleCategories: "id",
-      containers: "id, parentId, moduleId, code, containerType, status, sortOrder",
-      subjects: "id, moduleId, containerId, isActive, isRecommendedForCut",
+      containers: "id, parentId, moduleId, code, containerType, status, sortOrder, syncedToCloud",
+      subjects: "id, moduleId, containerId, isActive, isRecommendedForCut, syncedToCloud",
       activityLogs: "id, moduleId, containerId, subjectId, activityType, performedAt, syncedToCloud",
-      feedPurchases: "id, category, purchasedAt",
+      feedPurchases: "id, category, purchasedAt, syncedToCloud",
       feedCategories: "id",
     });
   }

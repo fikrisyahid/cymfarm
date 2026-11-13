@@ -127,7 +127,7 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
       };
     });
 
-    // Bulk put to IndexedDB in a transaction + Prune local records deleted from Cloud (Anti-Zombie)
+    // Bulk put to IndexedDB in a transaction + Prune ONLY already-synced records deleted from Cloud (Anti-Zombie)
     await localDb.transaction(
       "rw",
       [
@@ -140,11 +140,18 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
         localDb.activityLogs,
       ],
       async () => {
-        // 1. Reconcile & Prune Feed Purchases (Anti-Zombie)
+        // 1. Reconcile & Prune Feed Purchases
+        // ATURAN EMAS: HANYA prune data yang SEBELUMNYA SUDAH TERSINKRON (syncedToCloud === true)
+        // Data baru yang dibuat saat offline (syncedToCloud === false) TIDAK BOLEH DIHAPUS!
         if (Array.isArray(feedPurchases)) {
           const cloudFeedIds = new Set(feedPurchases.map((fp: any) => fp.id));
           const localFeeds = await localDb.feedPurchases.toArray();
           for (const lf of localFeeds) {
+            // Jika data ini belum pernah naik ke cloud, JANGAN HAPUS! Ini data baru offline!
+            if (lf.syncedToCloud === false) {
+              continue;
+            }
+            // Jika data ini dulunya sudah ada di cloud, tapi sekarang hilang dari cloud -> Berarti sudah didelete di server!
             if (!cloudFeedIds.has(lf.id)) {
               await localDb.feedPurchases.delete(lf.id);
             }
@@ -154,22 +161,30 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
               ...fp,
               weightKg: Number(fp.weightKg),
               purchasedAt: new Date(fp.purchasedAt).toISOString(),
+              syncedToCloud: true,
             }));
             await localDb.feedPurchases.bulkPut(formattedPurchases);
           }
         }
 
-        // 2. Reconcile & Prune Containers (Anti-Zombie)
+        // 2. Reconcile & Prune Containers
         if (Array.isArray(containers)) {
           const cloudContIds = new Set(containers.map((c: any) => c.id));
           const localConts = await localDb.containers.toArray();
           for (const lc of localConts) {
+            if (lc.syncedToCloud === false) {
+              continue;
+            }
             if (!cloudContIds.has(lc.id)) {
               await localDb.containers.delete(lc.id);
             }
           }
           if (containers.length > 0) {
-            await localDb.containers.bulkPut(containers);
+            const formattedContainers = containers.map((c: any) => ({
+              ...c,
+              syncedToCloud: true,
+            }));
+            await localDb.containers.bulkPut(formattedContainers);
           }
         }
 
@@ -178,18 +193,28 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
           const cloudModIds = new Set(modules.map((m: any) => m.id));
           const localMods = await localDb.farmModules.toArray();
           for (const lm of localMods) {
+            if (lm.syncedToCloud === false) {
+              continue;
+            }
             if (!cloudModIds.has(lm.id)) {
               await localDb.farmModules.delete(lm.id);
             }
           }
           if (modules.length > 0) {
-            await localDb.farmModules.bulkPut(modules);
+            const formattedModules = modules.map((m: any) => ({
+              ...m,
+              syncedToCloud: true,
+            }));
+            await localDb.farmModules.bulkPut(formattedModules);
           }
         }
 
         // 4. Upsert Module Categories & Subjects & Feed Categories
         if (moduleCategories?.length) await localDb.farmModuleCategories.bulkPut(moduleCategories);
-        if (reconciledSubjects?.length) await localDb.subjects.bulkPut(reconciledSubjects);
+        if (reconciledSubjects?.length) {
+          const syncedSubjects = reconciledSubjects.map((s) => ({ ...s, syncedToCloud: true }));
+          await localDb.subjects.bulkPut(syncedSubjects);
+        }
         if (feedCategories?.length) await localDb.feedCategories.bulkPut(feedCategories);
 
         // 5. Activity logs reconciliation

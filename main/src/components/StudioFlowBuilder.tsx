@@ -478,6 +478,7 @@ export function StudioFlowBuilder({
           { id: `${id}-e2`, source: `${id}-n2`, target: `${id}-n3` },
         ],
       },
+      syncedToCloud: false,
     };
     await localDb.farmModules.put(newModule);
 
@@ -696,6 +697,7 @@ export function StudioFlowBuilder({
         containerType: "CAGE_SET",
         status: "ACTIVE",
         sortOrder: containers.length + 1,
+        syncedToCloud: false,
       });
 
       // Buat Slot-Slot Anaknya (Child Slots)
@@ -710,6 +712,7 @@ export function StudioFlowBuilder({
           containerType: "CAGE_SLOT",
           status: "VACANT",
           sortOrder: s,
+          syncedToCloud: false,
         });
       }
       await localDb.containers.bulkPut(childSlots);
@@ -735,6 +738,7 @@ export function StudioFlowBuilder({
         containerType: mod.category === "AQUACULTURE" ? "POND" : "CUSTOM",
         status: "ACTIVE",
         sortOrder: containers.length + 1,
+        syncedToCloud: false,
       });
 
       // Masukkan populasi batch subjek
@@ -748,6 +752,7 @@ export function StudioFlowBuilder({
         consecutiveZeroYieldDays: 0,
         isRecommendedForCut: false,
         isActive: true,
+        syncedToCloud: false,
       });
 
       await localDb.activityLogs.put({

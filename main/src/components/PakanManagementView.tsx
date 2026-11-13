@@ -167,6 +167,7 @@ export function PakanManagementView({
         priceIdr: Number(priceIdr),
         purchasedAt: isoDate,
         notes: notes.trim(),
+        syncedToCloud: false,
       });
 
       // Catat ke Activity Log
