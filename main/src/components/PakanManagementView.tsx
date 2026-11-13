@@ -133,7 +133,8 @@ export function PakanManagementView({
     const isoDate = new Date(`${purchasedAt}T08:00:00`).toISOString();
 
     if (editingFeed) {
-      // Update
+      // Update (Tandai syncedToCloud: false & updatedAt agar ikut sync LWW)
+      const nowIso = new Date().toISOString();
       await localDb.feedPurchases.update(editingFeed.id, {
         feedName: feedName.trim(),
         category,
@@ -141,6 +142,8 @@ export function PakanManagementView({
         priceIdr: Number(priceIdr),
         purchasedAt: isoDate,
         notes: notes.trim(),
+        updatedAt: nowIso,
+        syncedToCloud: false,
       });
 
       // Catat ke Activity Log
@@ -148,10 +151,11 @@ export function PakanManagementView({
         id: `log-feed-upd-${Date.now()}`,
         moduleId: "logistik",
         containerId: "gudang",
+        subjectId: editingFeed.id,
         activityType: "FEED_PURCHASE_UPDATE",
         quantity: Math.round(Number(weightKg)),
         note: `Perbarui data pakan: ${feedName.trim()} (${weightKg} KG, ${category})`,
-        performedAt: new Date().toISOString(),
+        performedAt: nowIso,
         syncedToCloud: false,
       });
 

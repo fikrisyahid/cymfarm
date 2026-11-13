@@ -590,10 +590,13 @@ export function StudioFlowBuilder({
     if (!editingContainer || !editContainerName.trim() || !editContainerCode.trim()) return;
 
     const cleanCode = editContainerCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    const nowIso = new Date().toISOString();
 
     await localDb.containers.update(editingContainer.id, {
       name: editContainerName.trim(),
       code: cleanCode,
+      updatedAt: nowIso,
+      syncedToCloud: false,
     });
 
     await localDb.activityLogs.put({
@@ -603,7 +606,7 @@ export function StudioFlowBuilder({
       activityType: "CONTAINER_UPDATE",
       quantity: 1,
       note: `Ubah data wadah: ${editContainerName.trim()} (${cleanCode})`,
-      performedAt: new Date().toISOString(),
+      performedAt: nowIso,
       syncedToCloud: false,
     });
 

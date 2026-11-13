@@ -28,6 +28,7 @@ export interface LocalFarmModule {
   trackingMode: "INDIVIDUAL" | "BATCH";
   description: string;
   flowGraph: FlowGraphDefinition;
+  updatedAt?: string;
   syncedToCloud?: boolean;
 }
 
@@ -42,6 +43,7 @@ export interface LocalContainer {
   maintenanceNote?: string;
   sortOrder: number;
   sizeGrade?: "SMALL" | "MEDIUM" | "LARGE";
+  updatedAt?: string;
   syncedToCloud?: boolean;
 }
 
@@ -62,6 +64,7 @@ export interface LocalSubject {
   eggHarvestedToday?: boolean;
   lastFedDate?: string; // YYYY-MM-DD (Auto-resets when calendar day changes!)
   lastEggDate?: string; // YYYY-MM-DD (Auto-resets when calendar day changes!)
+  updatedAt?: string;
   syncedToCloud?: boolean;
 }
 
@@ -99,6 +102,7 @@ export interface LocalFeedPurchase {
   priceIdr?: number;
   purchasedAt: string;
   notes?: string;
+  updatedAt?: string;
   syncedToCloud?: boolean;
 }
 

@@ -124,6 +124,7 @@ export function AnalyticsAndFeedView({
     const purchasedAtIso = new Date(`${purchasedDateInput}T08:00:00`).toISOString();
 
     if (editingFeedId) {
+      const nowIso = new Date().toISOString();
       await localDb.feedPurchases.update(editingFeedId, {
         feedName: feedNameInput,
         category: feedCategoryInput,
@@ -131,16 +132,19 @@ export function AnalyticsAndFeedView({
         priceIdr: priceInput,
         purchasedAt: purchasedAtIso,
         notes: notesInput,
+        updatedAt: nowIso,
+        syncedToCloud: false,
       });
 
       await localDb.activityLogs.put({
         id: `log-feed-edit-${Date.now()}`,
         moduleId: "logistik",
         containerId: "gudang",
+        subjectId: editingFeedId,
         activityType: "FEED_PURCHASE_UPDATE",
         quantity: Math.round(weightInput),
         note: `Edit riwayat pakan: ${feedNameInput} (${weightInput} KG, ${feedCategoryInput})`,
-        performedAt: new Date().toISOString(),
+        performedAt: nowIso,
         syncedToCloud: false,
       });
 
