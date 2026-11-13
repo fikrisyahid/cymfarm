@@ -34,6 +34,7 @@ import {
   Layers,
   ChevronDown,
   Check,
+  Search,
 } from "lucide-react";
 import {
   localDb,
@@ -205,6 +206,10 @@ export function StudioFlowBuilder({
   const [newModCatIcon, setNewModCatIcon] = useState("🍄");
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
+  // State Modal Switcher Modul (Hybrid Selector)
+  const [showModulePicker, setShowModulePicker] = useState(false);
+  const [moduleSearchQuery, setModuleSearchQuery] = useState("");
+
   // State Modal Edit Info Modul
   const [showEditModModal, setShowEditModModal] = useState(false);
   const [editModName, setEditModName] = useState("");
@@ -240,6 +245,23 @@ export function StudioFlowBuilder({
     () => modules.find((m) => m.id === selectedModuleId) || modules[0],
     [modules, selectedModuleId]
   );
+
+  const activeCategoryObj = useMemo(
+    () => activeModuleCategories.find((c) => c.id === activeModule?.category),
+    [activeModuleCategories, activeModule]
+  );
+
+  // Filter modul untuk hybrid module switcher
+  const filteredModules = useMemo(() => {
+    if (!moduleSearchQuery.trim()) return modules;
+    const q = moduleSearchQuery.toLowerCase();
+    return modules.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q) ||
+        m.trackingMode.toLowerCase().includes(q)
+    );
+  }, [modules, moduleSearchQuery]);
 
   const initialNodes: Node<FlowNodeData>[] = useMemo(
     () =>
@@ -751,44 +773,60 @@ export function StudioFlowBuilder({
     <div className="w-full max-w-full space-y-5 overflow-hidden">
       {/* Top Module Switcher & Create New Farm Module */}
       <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-300 bg-white p-4 sm:p-5 shadow-sm">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-              Pilih Modul Alur:
+              Modul Aktif ({modules.length} Tersedia):
             </span>
             {activeModule && (
               <button
                 type="button"
                 onClick={handleOpenEditModule}
-                className="flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 shadow-2xs"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 shadow-2xs"
               >
                 <Edit2 className="h-3.5 w-3.5 text-emerald-700" />
                 <span>Edit Info Modul</span>
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {modules.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedModuleId(m.id)}
-                className={`flex w-full flex-col items-start gap-1 rounded-2xl border-2 px-4 py-3 text-left transition active:scale-98 ${
-                  m.id === selectedModuleId
-                    ? "border-emerald-900 bg-emerald-700 text-white shadow-sm"
-                    : "border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100"
-                }`}
-              >
-                <span className={`inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                  m.id === selectedModuleId ? "bg-black/20 text-white" : "bg-slate-200 text-slate-700"
-                }`}>
-                  {m.trackingMode} • {m.category}
-                </span>
-                <span className="text-sm font-black leading-snug">{m.name}</span>
-              </button>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Active Module Card Trigger */}
+          {activeModule && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-2xl border-2 border-emerald-800 bg-gradient-to-r from-emerald-800 to-emerald-900 p-3.5 sm:p-4 text-white shadow-md">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl shadow-inner">
+                  {activeCategoryObj?.icon || "🌾"}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-100">
+                      {activeCategoryObj?.name || activeModule.category}
+                    </span>
+                    <span className="rounded-md bg-emerald-950/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-200 border border-emerald-600/30">
+                      Mode {activeModule.trackingMode === "INDIVIDUAL" ? "Individu" : "Koloni / Batch"}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black leading-tight text-white mt-1 break-words">
+                    {activeModule.name}
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setModuleSearchQuery("");
+                  setShowModulePicker(true);
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-black text-emerald-950 shadow-sm hover:bg-emerald-50 active:scale-95 shrink-0"
+              >
+                <span>Ganti Modul</span>
+                <ChevronDown className="h-4 w-4 text-emerald-800" />
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
             <button
               onClick={() => setShowNewModal(true)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-700 bg-emerald-50 py-3 text-sm font-black text-emerald-900 hover:bg-emerald-100 active:scale-98"
@@ -1886,6 +1924,150 @@ export function StudioFlowBuilder({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Modal: Hybrid Module Switcher / Selector */}
+      {showModulePicker && (
+        <div
+          onClick={() => setShowModulePicker(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-3xl border-2 border-emerald-700 bg-white p-5 sm:p-6 shadow-2xl"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  Pilih Modul Alur
+                </h3>
+                <p className="text-xs font-bold text-slate-500 mt-0.5">
+                  Total {modules.length} modul terdaftar di sistem farm
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModulePicker(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="mt-3.5 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={moduleSearchQuery}
+                onChange={(e) => setModuleSearchQuery(e.target.value)}
+                placeholder="Cari nama modul, kategori, atau tracking..."
+                className="w-full rounded-2xl border-2 border-slate-300 bg-slate-50 pl-10 pr-4 py-2.5 text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-600 focus:outline-none"
+              />
+              {moduleSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setModuleSearchQuery("")}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 hover:text-slate-700"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* List of Modules */}
+            <div className="mt-3 flex-1 overflow-y-auto space-y-2 pr-1 max-h-[50vh]">
+              {filteredModules.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500">
+                  Tidak ditemukan modul dengan kata kunci &quot;{moduleSearchQuery}&quot;
+                </div>
+              ) : (
+                filteredModules.map((m) => {
+                  const isSelected = m.id === selectedModuleId;
+                  const catObj = activeModuleCategories.find((c) => c.id === m.category);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedModuleId(m.id);
+                        setShowModulePicker(false);
+                      }}
+                      className={`flex w-full items-center justify-between gap-3 rounded-2xl border-2 p-3.5 text-left transition active:scale-98 ${
+                        isSelected
+                          ? "border-emerald-700 bg-emerald-50 ring-2 ring-emerald-500/20 shadow-xs"
+                          : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold ${
+                            isSelected
+                              ? "bg-emerald-600 text-white shadow-xs"
+                              : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {catObj?.icon || "🌾"}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-600 border border-slate-200">
+                              {catObj?.name || m.category}
+                            </span>
+                            <span
+                              className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border ${
+                                m.trackingMode === "INDIVIDUAL"
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : "bg-amber-50 text-amber-800 border-amber-200"
+                              }`}
+                            >
+                              {m.trackingMode === "INDIVIDUAL" ? "Individu" : "Koloni / Batch"}
+                            </span>
+                          </div>
+                          <div className="text-sm font-black text-slate-900 mt-1 break-words">
+                            {m.name}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isSelected ? (
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-slate-400 shrink-0">
+                          Pilih
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Bottom Actions inside Modal */}
+            <div className="mt-4 pt-3 border-t border-slate-200 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModulePicker(false);
+                  setShowNewModal(true);
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl border-2 border-emerald-700 bg-emerald-50 py-3 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95"
+              >
+                <Sparkles className="h-4 w-4 text-emerald-700" />
+                <span>+ Buat Modul Baru</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowModulePicker(false)}
+                className="rounded-2xl border-2 border-slate-300 bg-slate-100 px-5 py-3 text-xs font-black text-slate-700 hover:bg-slate-200 active:scale-95"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
