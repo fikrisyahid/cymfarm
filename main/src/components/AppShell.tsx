@@ -100,42 +100,68 @@ export function AppShell({
 
         {/* Date Picker di Tengah Header */}
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="relative flex items-center gap-1.5 rounded-2xl border-2 border-slate-300 bg-slate-50 px-3 py-1.5 cursor-pointer hover:border-emerald-600 hover:bg-emerald-50/50 transition active:scale-98">
-            <Calendar className="h-4 w-4 text-emerald-700 shrink-0" />
-            <span className="text-xs font-black text-slate-900 truncate">
-              {new Date(selectedDate).toLocaleDateString("id-ID", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-            {isToday ? (
-              <span className="rounded-md bg-emerald-700 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
-                Hari Ini
+          <div className="relative flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("header-date-input") as HTMLInputElement | null;
+                if (el) {
+                  if (typeof el.showPicker === "function") {
+                    el.showPicker();
+                  } else {
+                    el.click();
+                  }
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 cursor-pointer hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition active:scale-98"
+            >
+              <Calendar className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+              <span className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">
+                {new Date(selectedDate).toLocaleDateString("id-ID", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
               </span>
-            ) : (
-              <span className="rounded-md bg-amber-500 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
-                Masa Lalu
-              </span>
-            )}
+              {isToday ? (
+                <span className="rounded-md bg-emerald-700 dark:bg-emerald-600 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+                  Hari Ini
+                </span>
+              ) : (
+                <span className="rounded-md bg-amber-500 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+                  Masa Lalu
+                </span>
+              )}
+            </button>
             <input
+              id="header-date-input"
               type="date"
               value={selectedDate}
               max={getTodayDateStr()}
               onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedDate(e.target.value);
+                const val = e.target.value;
+                const today = getTodayDateStr();
+                if (val) {
+                  // Pastikan tidak boleh melebihi hari ini
+                  if (val > today) {
+                    setSelectedDate(today);
+                    toast.warning("Hanya bisa memilih hari ini atau hari kemarin.");
+                  } else {
+                    setSelectedDate(val);
+                  }
                 }
               }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              className="sr-only pointer-events-none"
+              tabIndex={-1}
+              aria-hidden="true"
             />
-          </label>
+          </div>
 
           {!isToday && (
             <button
               onClick={goToToday}
-              className="rounded-xl border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition"
+              className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 text-[10px] font-black text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 active:scale-95 transition"
               title="Kembali ke Hari Ini"
             >
               Hari Ini

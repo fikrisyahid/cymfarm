@@ -18,13 +18,22 @@ const DateContext = createContext<DateContextType>({
 });
 
 export function DateProvider({ children }: { children: React.ReactNode }) {
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayDateStr());
+  const [selectedDate, setSelectedDateState] = useState<string>(getTodayDateStr());
   const todayStr = getTodayDateStr();
 
   const isToday = selectedDate === todayStr;
 
+  const setSelectedDate = (date: string) => {
+    const today = getTodayDateStr();
+    if (date > today) {
+      setSelectedDateState(today);
+    } else {
+      setSelectedDateState(date);
+    }
+  };
+
   const goToToday = () => {
-    setSelectedDate(todayStr);
+    setSelectedDateState(todayStr);
   };
 
   return (
