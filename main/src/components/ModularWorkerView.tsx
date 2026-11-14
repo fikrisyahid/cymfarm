@@ -252,7 +252,7 @@ export function ModularWorkerView({
       syncedToCloud: false,
     });
 
-    // Catat ke Activity Log
+    // Catat ke Activity Log dengan kuantitas nilai tetap (Fixed Absolute Value)
     const newLogId = `log-pop-${Date.now()}`;
     await localDb.activityLogs.put({
       id: newLogId,
@@ -260,7 +260,7 @@ export function ModularWorkerView({
       containerId: currentContainer.id,
       subjectId: currentSubject?.id,
       activityType: "POPULATION_CHANGE",
-      quantity: diff,
+      quantity: newPop, // Selalu simpan target nilai tetap
       unit: "Unit",
       note: `${finalReason} di ${currentContainer.name}. Populasi kini: ${newPop}`,
       performedAt: new Date().toISOString(),
