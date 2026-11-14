@@ -13,13 +13,17 @@ import { QrViewModal } from "./QrViewModal";
 import { runFarmSync } from "@/lib/sync-engine";
 
 export function AdminModularStudio() {
-  const modules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
-  const containers = useLiveQuery(() => localDb.containers.toArray(), [], []);
+  const rawModules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
+  const rawContainers = useLiveQuery(() => localDb.containers.toArray(), [], []);
   const moduleCategories = useLiveQuery(
     () => localDb.farmModuleCategories.toArray(),
     [],
     []
   );
+
+  // Filter hanya yang aktif (tidak soft deleted)
+  const modules = (rawModules || []).filter((m) => !m.deletedAt);
+  const containers = (rawContainers || []).filter((c) => !c.deletedAt);
 
   const [showModal, setShowModal] = useState(false);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
@@ -230,12 +234,29 @@ export function AdminModularStudio() {
   const handleDeleteModule = async (m: LocalFarmModule) => {
     if (!confirm(`Yakin ingin menghapus seluruh sistem ternak "${m.name}" dan semua wadahnya?`)) return;
 
+    const nowIso = new Date().toISOString();
     const relatedContainers = (containers || []).filter((c) => c.moduleId === m.id);
     for (const c of relatedContainers) {
-      await localDb.containers.delete(c.id);
-      await localDb.subjects.where("containerId").equals(c.id).delete();
+      // Soft-delete containers & subjects
+      await localDb.containers.update(c.id, {
+        deletedAt: nowIso,
+        updatedAt: nowIso,
+        syncedToCloud: false,
+      });
+      const subjs = await localDb.subjects.where("containerId").equals(c.id).toArray();
+      for (const s of subjs) {
+        await localDb.subjects.update(s.id, {
+          deletedAt: nowIso,
+          updatedAt: nowIso,
+          syncedToCloud: false,
+        });
+      }
     }
-    await localDb.farmModules.delete(m.id);
+    await localDb.farmModules.update(m.id, {
+      deletedAt: nowIso,
+      updatedAt: nowIso,
+      syncedToCloud: false,
+    });
 
     await localDb.activityLogs.put({
       id: `log-mod-del-${Date.now()}`,
@@ -244,7 +265,7 @@ export function AdminModularStudio() {
       activityType: "TERMINATE",
       quantity: 1,
       note: `Hapus sistem modul: ${m.name}`,
-      performedAt: new Date().toISOString(),
+      performedAt: nowIso,
       syncedToCloud: false,
     });
     runFarmSync().catch(() => {});

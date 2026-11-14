@@ -14,9 +14,14 @@ export default function LapanganPage() {
     ensureInitialCleanState().then(() => setReady(true));
   }, []);
 
-  const containers = useLiveQuery(() => localDb.containers.toArray(), [], []);
-  const subjects = useLiveQuery(() => localDb.subjects.toArray(), [], []);
-  const modules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
+  const rawContainers = useLiveQuery(() => localDb.containers.toArray(), [], []);
+  const rawSubjects = useLiveQuery(() => localDb.subjects.toArray(), [], []);
+  const rawModules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
+
+  // Filter soft-deleted items
+  const containers = (rawContainers || []).filter((c) => !c.deletedAt);
+  const subjects = (rawSubjects || []).filter((s) => !s.deletedAt);
+  const modules = (rawModules || []).filter((m) => !m.deletedAt);
 
   useEffect(() => {
     if (!selectedCode && containers && containers.length > 0) {
