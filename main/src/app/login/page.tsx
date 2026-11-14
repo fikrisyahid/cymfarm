@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { LogIn, User, Lock, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -50,14 +51,21 @@ export default function LoginPage() {
       <div className="w-full max-w-lg rounded-3xl border-2 border-slate-300 bg-white p-8 shadow-xl">
         {/* Logo & Title */}
         <div className="text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-700 text-3xl font-black text-white shadow-md">
-            CF
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-700 shadow-md p-2">
+            <Image
+              src="/icon.svg"
+              alt="CymFarm Logo"
+              width={64}
+              height={64}
+              className="h-full w-full object-contain"
+              priority
+            />
           </div>
           <h1 className="mt-4 text-3xl font-black text-slate-900">
             CymFarm Keluarga
           </h1>
-          <p className="mt-2 text-lg font-semibold text-slate-600">
-            Silakan masuk untuk mengelola kandang ayam & kolam lele
+          <p className="mt-2 text-sm font-semibold text-slate-600">
+            Aplikasi Manajemen Peternakan & Pertanian Modular
           </p>
         </div>
 

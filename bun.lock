@@ -7,6 +7,9 @@
       "dependencies": {
         "html5-qrcode": "^2.3.8",
       },
+      "devDependencies": {
+        "sharp": "^0.35.5",
+      },
     },
     "main": {
       "name": "cymfarm-main",

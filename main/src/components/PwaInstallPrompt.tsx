@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { Download, X, Smartphone, Check } from "lucide-react";
 
 export function PwaInstallPrompt() {
@@ -99,8 +100,14 @@ export function PwaInstallPrompt() {
         </button>
 
         <div className="flex items-start gap-3.5 pr-6">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-white shadow-sm">
-            <Smartphone className="h-6 w-6 stroke-[2.5]" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 shadow-sm overflow-hidden p-1.5">
+            <Image
+              src="/icon.svg"
+              alt="CymFarm"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </div>
 
           <div>

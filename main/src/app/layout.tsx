@@ -6,8 +6,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CymFarm Keluarga",
   description:
-    "Aplikasi Manajemen Peternakan Keluarga (Ayam, Lele, & Modul Dinamis)",
+    "Aplikasi Manajemen Peternakan & Pertanian Keluarga (Ayam, Lele, Kambing, Jamur, & Tanaman)",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {

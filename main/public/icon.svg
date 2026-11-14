@@ -1,5 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
-  <rect width="120" height="120" rx="28" fill="#064E3B"/>
-  <circle cx="60" cy="60" r="36" fill="#10B981"/>
-  <path d="M45 62L56 73L77 48" stroke="#022C22" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#064E3B" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#022c22" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square with soft gradient -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Inner subtle border -->
+  <rect x="8" y="8" width="496" height="496" rx="120" stroke="#34D399" stroke-width="6" stroke-opacity="0.3" fill="none" />
+
+  <!-- Stylized Farm/Sprout Icon inside circle -->
+  <g filter="url(#glow)">
+    <!-- Base Soil / Pond Field Arc -->
+    <path d="M128 352C160 384 352 384 384 352" stroke="#A7F3D0" stroke-width="24" stroke-linecap="round" />
+
+    <!-- Central Sprout Stem -->
+    <path d="M256 352V180" stroke="#ECFDF5" stroke-width="26" stroke-linecap="round" />
+
+    <!-- Left Leaf (Growth / Agriculture) -->
+    <path d="M256 260C210 260 170 216 176 160C230 156 260 210 256 260Z" fill="url(#leafGrad)" stroke="#ECFDF5" stroke-width="12" stroke-linejoin="round" />
+
+    <!-- Right Leaf / Sun Crest (Harvest / Livestock Energy) -->
+    <path d="M256 210C302 210 342 166 336 110C282 106 252 160 256 210Z" fill="#FBBF24" stroke="#FFFBEB" stroke-width="12" stroke-linejoin="round" />
+    
+    <!-- Small Center Sprout Bud -->
+    <circle cx="256" cy="140" r="16" fill="#34D399" stroke="#ECFDF5" stroke-width="8" />
+  </g>
 </svg>

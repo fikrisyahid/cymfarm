@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -209,8 +210,14 @@ export function AppShell({
           >
             <div className="flex items-center justify-between border-b-2 border-slate-200 p-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-700 text-lg font-black text-white">
-                  CF
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-700 shadow-sm overflow-hidden p-1">
+                  <Image
+                    src="/icon.svg"
+                    alt="CymFarm"
+                    width={36}
+                    height={36}
+                    className="h-full w-full object-contain"
+                  />
                 </div>
                 <div>
                   <div className="text-base font-black text-slate-900">CymFarm</div>
