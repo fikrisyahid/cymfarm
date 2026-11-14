@@ -467,9 +467,9 @@ export function ModularWorkerView({
   if (!currentContainer) {
     return (
       <div className="w-full p-6 text-center">
-        <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-12">
-          <h3 className="text-xl font-black text-slate-800">Tidak Ada Area Terdaftar</h3>
-          <p className="mt-2 text-xs font-bold text-slate-500">
+        <div className="rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-12">
+          <h3 className="text-xl font-black text-slate-800 dark:text-slate-200">Tidak Ada Area Terdaftar</h3>
+          <p className="mt-2 text-xs font-bold text-slate-500 dark:text-slate-400">
             Silakan masuk ke halaman Admin untuk membuat sistem ternak & mendaftarkan wadah pertama Anda.
           </p>
         </div>

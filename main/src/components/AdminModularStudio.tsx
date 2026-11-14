@@ -336,22 +336,22 @@ export function AdminModularStudio() {
   return (
     <div className="w-full space-y-6 pb-20">
       {/* Header Studio */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl border-2 border-slate-300 bg-white p-5 sm:p-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-sm">
         <div>
-          <span className="text-xs font-black uppercase tracking-wider text-emerald-700">
+          <span className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
             ADMIN STUDIO
           </span>
-          <h2 className="text-2xl font-black text-slate-900 mt-0.5">
+          <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-0.5">
             Kelola Sistem Ternak Modular
           </h2>
-          <p className="text-xs font-bold text-slate-500 mt-1">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
             Tambah jenis ternak atau tanaman baru tanpa koding ulang alur.
           </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3.5 text-sm font-black text-white shadow-md hover:bg-emerald-800 active:scale-95 transition"
+          className="flex items-center gap-2 rounded-2xl bg-emerald-700 dark:bg-emerald-600 px-5 py-3.5 text-sm font-black text-white shadow-md hover:bg-emerald-800 dark:hover:bg-emerald-700 active:scale-95 transition"
         >
           <Sparkles className="h-5 w-5" />
           <span>+ Buat Sistem Ternak Baru</span>
@@ -360,17 +360,17 @@ export function AdminModularStudio() {
 
       {/* List Modul yang Terdaftar */}
       <div className="space-y-3">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Sistem Ternak Aktif ({modules?.length || 0})
         </h3>
 
         {(!modules || modules.length === 0) ? (
-          <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-            <Layers className="mx-auto h-12 w-12 text-slate-300" />
-            <h4 className="mt-3 text-base font-black text-slate-700">
+          <div className="rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-12 text-center">
+            <Layers className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+            <h4 className="mt-3 text-base font-black text-slate-700 dark:text-slate-300">
               Belum Ada Sistem Ternak
             </h4>
-            <p className="mt-1 text-xs font-bold text-slate-400 max-w-sm mx-auto">
+            <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
               Tekan tombol &quot;+ Buat Sistem Ternak Baru&quot; di atas untuk mendaftarkan jenis ternak pertama Anda.
             </p>
           </div>
@@ -383,42 +383,42 @@ export function AdminModularStudio() {
               return (
                 <div
                   key={m.id}
-                  className="flex flex-col justify-between rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm hover:border-emerald-600 transition"
+                  className="flex flex-col justify-between rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm hover:border-emerald-600 dark:hover:border-emerald-500 transition"
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700 border border-slate-200">
+                      <span className="flex items-center gap-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-black text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         <span>{cat?.icon || "🌾"}</span>
                         <span>{cat?.name || m.category}</span>
                       </span>
-                      <span className="rounded-xl bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800 border border-emerald-200">
+                      <span className="rounded-xl bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 text-xs font-black text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                         {m.trackingMode === "INDIVIDUAL" ? "Individu" : "Koloni / Batch"}
                       </span>
                     </div>
 
-                    <h4 className="text-lg font-black text-slate-900 mt-3">
+                    <h4 className="text-lg font-black text-slate-900 dark:text-slate-100 mt-3">
                       {m.name}
                     </h4>
 
                     {/* Rincian Tombol Lapangan */}
-                    <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3.5 border border-slate-200 text-xs">
+                    <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 dark:bg-slate-800/40 p-3.5 border border-slate-200 dark:border-slate-800 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-500">Tombol Rawat:</span>
-                        <span className="font-black text-emerald-800">
+                        <span className="font-bold text-slate-500 dark:text-slate-400">Tombol Rawat:</span>
+                        <span className="font-black text-emerald-800 dark:text-emerald-300">
                           &quot;{m.config?.routineActionLabel}&quot;
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-500">Tombol Panen:</span>
-                        <span className="font-black text-amber-800">
+                        <span className="font-bold text-slate-500 dark:text-slate-400">Tombol Panen:</span>
+                        <span className="font-black text-amber-800 dark:text-amber-300">
                           &quot;{m.config?.harvestActionLabel}&quot;
                           {m.config?.harvestUnitLabel ? ` (${m.config.harvestUnitLabel})` : ""}
                         </span>
                       </div>
-                      <div className="pt-2 border-t border-slate-200">
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-slate-500">Daftar Wadah & QR:</span>
-                          <span className="font-black text-slate-800">
+                          <span className="font-bold text-slate-500 dark:text-slate-400">Daftar Wadah & QR:</span>
+                          <span className="font-black text-slate-800 dark:text-slate-200">
                             {relatedCount} Lokasi Aktif
                           </span>
                         </div>
@@ -429,13 +429,13 @@ export function AdminModularStudio() {
                             .map((cont) => (
                               <div
                                 key={cont.id}
-                                className="flex items-center justify-between gap-2 rounded-xl bg-white p-2 border border-slate-200"
+                                className="flex items-center justify-between gap-2 rounded-xl bg-white dark:bg-slate-800 p-2 border border-slate-200 dark:border-slate-700"
                               >
                                 <div className="min-w-0">
-                                  <div className="font-black text-slate-800 truncate leading-tight">
+                                  <div className="font-black text-slate-800 dark:text-slate-200 truncate leading-tight">
                                     {cont.name}
                                   </div>
-                                  <div className="text-[10px] font-mono text-slate-400">
+                                  <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                                     {cont.code}
                                   </div>
                                 </div>
@@ -445,7 +445,7 @@ export function AdminModularStudio() {
                                     setSelectedQrContainer(cont);
                                     setSelectedQrModule(m);
                                   }}
-                                  className="flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800 border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition shrink-0"
+                                  className="flex items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 text-[11px] font-black text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 active:scale-95 transition shrink-0"
                                   title="Lihat / Cetak / Download QR Code"
                                 >
                                   <QrCode className="h-3.5 w-3.5" />
@@ -458,24 +458,24 @@ export function AdminModularStudio() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex gap-2 pt-3 border-t border-slate-100 flex-wrap">
+                  <div className="mt-5 flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 flex-wrap">
                     <button
                       onClick={() => handleOpenAddContainer(m)}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-700 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-700 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 text-xs font-black text-emerald-950 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 active:scale-95"
                     >
-                      <Plus className="h-4 w-4 text-emerald-700" />
+                      <Plus className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
                       <span>Tambah Wadah</span>
                     </button>
                     <button
                       onClick={() => handleOpenEditModule(m)}
-                      className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95"
+                      className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95"
                     >
                       <Edit2 className="h-4 w-4" />
                       <span>Edit Info</span>
                     </button>
                     <button
                       onClick={() => handleDeleteModule(m)}
-                      className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 active:scale-95"
+                      className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-xs font-black text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-950/80 active:scale-95"
                     >
                       <Trash2 className="h-4 w-4" />
                       <span>Hapus</span>
@@ -492,26 +492,26 @@ export function AdminModularStudio() {
       {showModal && (
         <div
           onClick={() => setShowModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
         >
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSaveModule}
-            className="flex max-h-[92vh] w-full max-w-xl flex-col rounded-3xl border-2 border-emerald-700 bg-white p-5 sm:p-6 shadow-2xl overflow-hidden"
+            className="flex max-h-[92vh] w-full max-w-xl flex-col rounded-3xl border-2 border-emerald-700 dark:border-emerald-500 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-2xl overflow-hidden"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <h3 className="text-xl font-black text-slate-900">
+                <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
                   {editingModuleId ? "Edit Sistem Ternak" : "Buat Sistem Ternak Baru"}
                 </h3>
-                <p className="text-xs font-bold text-slate-500 mt-0.5">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                   Isi 4 kotak di bawah untuk menentukan tombol di HP pekerja
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+                className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -519,12 +519,12 @@ export function AdminModularStudio() {
 
             <div className="flex-1 overflow-y-auto space-y-4 py-4 pr-1">
               {/* KOTAK 1: NAMA & KATEGORI */}
-              <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 space-y-3">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+              <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 space-y-3">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   1. Nama & Kategori
                 </span>
                 <div>
-                  <label className="block text-xs font-black text-slate-700">
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                     Nama Sistem Ternak / Tanaman *
                   </label>
                   <input
@@ -533,18 +533,18 @@ export function AdminModularStudio() {
                     value={modName}
                     onChange={(e) => setModName(e.target.value)}
                     placeholder="Misal: Jamur Tiram / Bebek Petelur / Kangkung"
-                    className="mt-1 w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-black text-slate-700">
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                       Pilih Kategori
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowCatModal(true)}
-                      className="text-xs font-black text-emerald-700 hover:underline"
+                      className="text-xs font-black text-emerald-700 dark:text-emerald-400 hover:underline"
                     >
                       + Buat Kategori Baru
                     </button>
@@ -552,7 +552,7 @@ export function AdminModularStudio() {
                   <select
                     value={modCategory}
                     onChange={(e) => setModCategory(e.target.value)}
-                    className="mt-1 w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                   >
                     {(moduleCategories || []).map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -564,8 +564,8 @@ export function AdminModularStudio() {
               </div>
 
               {/* KOTAK 2: MODEL WADAH FISIK AWAL */}
-              <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 space-y-3">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+              <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 space-y-3">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   2. Model Wadah Fisik
                 </span>
                 <div className="grid grid-cols-2 gap-2">
@@ -574,12 +574,12 @@ export function AdminModularStudio() {
                     onClick={() => setTrackingMode("BATCH")}
                     className={`rounded-xl border-2 p-3 text-left transition ${
                       trackingMode === "BATCH"
-                        ? "border-emerald-700 bg-emerald-50 font-black text-emerald-950"
-                        : "border-slate-200 bg-white font-bold text-slate-700"
+                        ? "border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 font-black text-emerald-950 dark:text-emerald-200"
+                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     <div className="text-sm font-black">Koloni / Batch</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                       Contoh: Kolam Lele, Kumbung Jamur, Pot
                     </div>
                   </button>
@@ -589,20 +589,20 @@ export function AdminModularStudio() {
                     onClick={() => setTrackingMode("INDIVIDUAL")}
                     className={`rounded-xl border-2 p-3 text-left transition ${
                       trackingMode === "INDIVIDUAL"
-                        ? "border-emerald-700 bg-emerald-50 font-black text-emerald-950"
-                        : "border-slate-200 bg-white font-bold text-slate-700"
+                        ? "border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 font-black text-emerald-950 dark:text-emerald-200"
+                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     <div className="text-sm font-black">Satu per Satu</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                       Contoh: Kandang Baterai Ayam Petelur
                     </div>
                   </button>
                 </div>
 
                 {!editingModuleId && (
-                  <div className="pt-2 border-t border-slate-200 space-y-2.5">
-                    <div className="text-xs font-black text-slate-700">
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="text-xs font-black text-slate-700 dark:text-slate-300">
                       Daftarkan Wadah Fisik Pertama:
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -612,7 +612,7 @@ export function AdminModularStudio() {
                         value={containerName}
                         onChange={(e) => setContainerName(e.target.value)}
                         placeholder="Nama: Rak Jamur A / Kolam 1"
-                        className="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                        className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                       />
                       <input
                         type="text"
@@ -620,11 +620,11 @@ export function AdminModularStudio() {
                         value={containerCode}
                         onChange={(e) => setContainerCode(e.target.value)}
                         placeholder="Kode QR: RAK-A / KOLAM-1"
-                        className="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                        className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600">
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
                         Kapasitas / Populasi Awal
                       </label>
                       <input
@@ -632,7 +632,7 @@ export function AdminModularStudio() {
                         min={1}
                         value={containerCapacity}
                         onChange={(e) => setContainerCapacity(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                        className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -640,12 +640,12 @@ export function AdminModularStudio() {
               </div>
 
               {/* KOTAK 3: TOMBOL RAWAT HARIAN */}
-              <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 space-y-3">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+              <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 space-y-3">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   3. Tombol Perawatan Harian
                 </span>
                 <div>
-                  <label className="block text-xs font-black text-slate-700">
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                     Teks di Tombol HP Pekerja *
                   </label>
                   <input
@@ -654,21 +654,21 @@ export function AdminModularStudio() {
                     value={routineActionLabel}
                     onChange={(e) => setRoutineActionLabel(e.target.value)}
                     placeholder="Misal: Kasih Pakan / Semprot Kabut Air / Siram AB Mix"
-                    className="mt-1 w-full rounded-xl border-2 border-slate-300 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                    className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                   />
-                  <p className="mt-1 text-[11px] font-bold text-slate-500">
+                  <p className="mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                     Tombol ini akan otomatis dicentang hijau saat pekerja menekan tombolnya di lapangan.
                   </p>
                 </div>
               </div>
 
               {/* KOTAK 4: TOMBOL PANEN */}
-              <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 space-y-3">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+              <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 space-y-3">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   4. Tombol Panen / Hasil
                 </span>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-xs font-black text-slate-800 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
                     <input
                       type="radio"
                       name="harvestType"
@@ -678,7 +678,7 @@ export function AdminModularStudio() {
                     />
                     <span>Panen Berkala (Hewan/Pohon Tetap Hidup)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-black text-slate-800 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
                     <input
                       type="radio"
                       name="harvestType"
@@ -692,7 +692,7 @@ export function AdminModularStudio() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
                       Teks Tombol Panen *
                     </label>
                     <input
@@ -701,12 +701,12 @@ export function AdminModularStudio() {
                       value={harvestActionLabel}
                       onChange={(e) => setHarvestActionLabel(e.target.value)}
                       placeholder="Misal: Panen Telur / Petik Jamur / Panen Ikan"
-                      className="mt-1 w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                      className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                     />
                   </div>
                   {harvestType === "RECURRING" && (
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600">
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400">
                         Satuan Unit *
                       </label>
                       <input
@@ -715,20 +715,20 @@ export function AdminModularStudio() {
                         value={harvestUnitLabel}
                         onChange={(e) => setHarvestUnitLabel(e.target.value)}
                         placeholder="Misal: Butir / Kg / Ikat"
-                        className="mt-1 w-full rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:outline-none"
+                        className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                       />
                     </div>
                   )}
                 </div>
 
                 {/* Pengaturan Alert Keterlambatan Panen */}
-                <div className="pt-2 border-t border-slate-200">
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="block text-xs font-black text-slate-700">
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                         Alert Keterlambatan Panen (Hari)
                       </label>
-                      <p className="text-[11px] font-bold text-slate-500">
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                         Munculkan highlight peringatan jika tidak ada panen selama X hari (Isi 0 jika tidak butuh alert).
                       </p>
                     </div>
@@ -739,26 +739,26 @@ export function AdminModularStudio() {
                         max={365}
                         value={harvestAlertDays}
                         onChange={(e) => setHarvestAlertDays(Number(e.target.value))}
-                        className="w-16 rounded-xl border-2 border-slate-300 bg-white px-2.5 py-1.5 text-center text-sm font-black text-slate-900 focus:border-emerald-600 focus:outline-none"
+                        className="w-16 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-center text-sm font-black text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
                       />
-                      <span className="text-xs font-bold text-slate-600">Hari</span>
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Hari</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-200 flex gap-2">
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 active:scale-95 transition"
+                className="flex-1 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 py-3 text-sm font-black text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white shadow-md hover:bg-emerald-800 active:scale-95 transition"
+                className="flex-1 rounded-2xl bg-emerald-700 dark:bg-emerald-600 py-3 text-sm font-black text-white shadow-md hover:bg-emerald-800 active:scale-95 transition"
               >
                 Simpan Sistem Ternak
               </button>
@@ -771,26 +771,26 @@ export function AdminModularStudio() {
       {showAddContainerModal && targetModuleForContainer && (
         <div
           onClick={() => setShowAddContainerModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
         >
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSaveNewContainer}
-            className="w-full max-w-md rounded-3xl border-2 border-emerald-700 bg-white p-6 shadow-2xl space-y-4"
+            className="w-full max-w-md rounded-3xl border-2 border-emerald-700 dark:border-emerald-500 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
               <div>
-                <h3 className="text-xl font-black text-slate-900">
+                <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
                   + Tambah Wadah Baru
                 </h3>
-                <p className="text-xs font-bold text-slate-500 mt-0.5">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                   Untuk sistem: {targetModuleForContainer.name}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddContainerModal(false)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500"
+                className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 text-slate-500 dark:text-slate-400"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -798,7 +798,7 @@ export function AdminModularStudio() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-black text-slate-700">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                   Nama Wadah Fisik *
                 </label>
                 <input
@@ -807,12 +807,12 @@ export function AdminModularStudio() {
                   value={newContainerName}
                   onChange={(e) => setNewContainerName(e.target.value)}
                   placeholder="Misal: Rak Jamur B / Kolam 2 / Kandang B"
-                  className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                  className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-700">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                   Kode QR Singkat *
                 </label>
                 <input
@@ -821,12 +821,12 @@ export function AdminModularStudio() {
                   value={newContainerCode}
                   onChange={(e) => setNewContainerCode(e.target.value)}
                   placeholder="Misal: RAK-B / KOLAM-2"
-                  className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600 uppercase"
+                  className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-600 uppercase"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-700">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                   Kapasitas / Populasi Awal
                 </label>
                 <input
@@ -835,7 +835,7 @@ export function AdminModularStudio() {
                   required
                   value={newContainerCapacity}
                   onChange={(e) => setNewContainerCapacity(Number(e.target.value))}
-                  className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                  className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-600"
                 />
               </div>
             </div>
@@ -844,13 +844,13 @@ export function AdminModularStudio() {
               <button
                 type="button"
                 onClick={() => setShowAddContainerModal(false)}
-                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+                className="flex-1 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 py-3 text-sm font-black text-slate-700 dark:text-slate-300"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800"
+                className="flex-1 rounded-2xl bg-emerald-700 dark:bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-800"
               >
                 Daftarkan Wadah
               </button>
@@ -863,28 +863,28 @@ export function AdminModularStudio() {
       {showCatModal && (
         <div
           onClick={() => setShowCatModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs"
         >
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSaveNewCategory}
-            className="w-full max-w-sm rounded-3xl border-2 border-emerald-700 bg-white p-6 shadow-2xl space-y-4"
+            className="w-full max-w-sm rounded-3xl border-2 border-emerald-700 dark:border-emerald-500 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <h3 className="text-xl font-black text-slate-900">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
                 Buat Kategori Baru
               </h3>
               <button
                 type="button"
                 onClick={() => setShowCatModal(false)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500"
+                className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 text-slate-500 dark:text-slate-400"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700">
+              <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                 Nama Kategori *
               </label>
               <input
@@ -893,12 +893,12 @@ export function AdminModularStudio() {
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
                 placeholder="Misal: Kambing / Lebah Madu / Anggrek"
-                className="mt-1 w-full rounded-xl border-2 border-slate-300 p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-600"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700">
+              <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
                 Pilih Ikon Emoji
               </label>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -909,8 +909,8 @@ export function AdminModularStudio() {
                     onClick={() => setNewCatIcon(emoji)}
                     className={`h-10 w-10 rounded-xl text-xl flex items-center justify-center border-2 transition ${
                       newCatIcon === emoji
-                        ? "border-emerald-700 bg-emerald-100 scale-105"
-                        : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                        ? "border-emerald-700 bg-emerald-100 dark:bg-emerald-950/80 scale-105"
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
                     }`}
                   >
                     {emoji}
@@ -923,13 +923,13 @@ export function AdminModularStudio() {
               <button
                 type="button"
                 onClick={() => setShowCatModal(false)}
-                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+                className="flex-1 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 py-3 text-sm font-black text-slate-700 dark:text-slate-300"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-2xl bg-emerald-700 py-3 text-sm font-black text-white hover:bg-emerald-800"
+                className="flex-1 rounded-2xl bg-emerald-700 dark:bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-800"
               >
                 Simpan Kategori
               </button>
@@ -951,30 +951,30 @@ export function AdminModularStudio() {
       )}
 
       {/* DANGER ZONE: RESET DATABASE LOKAL & CLOUD */}
-      <div className="rounded-3xl border-2 border-rose-300 bg-rose-50/50 p-6 space-y-4">
-        <div className="flex items-center gap-2.5 text-rose-900">
-          <AlertTriangle className="h-5 w-5 text-rose-600" />
+      <div className="rounded-3xl border-2 border-rose-300 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 p-6 space-y-4">
+        <div className="flex items-center gap-2.5 text-rose-900 dark:text-rose-300">
+          <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
           <h3 className="text-base font-black">Zona Berbahaya: Reset Database</h3>
         </div>
-        <p className="text-xs font-bold text-slate-600 leading-relaxed">
+        <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
           Gunakan tombol di bawah jika Anda ingin mengosongkan seluruh data operasional (kandang, modul ternak, populasi, dan seluruh riwayat catatan). Struktur tabel tidak dihapus.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {/* Tombol Hapus DB Lokal */}
-          <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 space-y-2">
+          <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2">
             <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-slate-700" />
-              <h4 className="text-xs font-black text-slate-900">Database Lokal (IndexedDB)</h4>
+              <Database className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+              <h4 className="text-xs font-black text-slate-900 dark:text-slate-100">Database Lokal (IndexedDB)</h4>
             </div>
-            <p className="text-[11px] font-bold text-slate-500">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
               Hanya membersihkan data yang tersimpan di browser perangkat/HP ini.
             </p>
             <button
               type="button"
               onClick={() => setShowConfirmResetModal("LOCAL")}
               disabled={resettingLocal}
-              className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 py-2.5 text-xs font-black text-rose-700 hover:bg-rose-100 active:scale-95 transition disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 py-2.5 text-xs font-black text-rose-700 dark:text-rose-300 hover:bg-rose-100 active:scale-95 transition disabled:opacity-50"
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span>Hapus Data DB Lokal</span>
@@ -982,12 +982,12 @@ export function AdminModularStudio() {
           </div>
 
           {/* Tombol Hapus DB Cloud */}
-          <div className="rounded-2xl border-2 border-rose-200 bg-white p-4 space-y-2">
+          <div className="rounded-2xl border-2 border-rose-200 dark:border-rose-900 bg-white dark:bg-slate-900 p-4 space-y-2">
             <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-rose-600" />
-              <h4 className="text-xs font-black text-rose-950">Database Cloud (Supabase)</h4>
+              <Database className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+              <h4 className="text-xs font-black text-rose-950 dark:text-rose-200">Database Cloud (Supabase)</h4>
             </div>
-            <p className="text-[11px] font-bold text-slate-500">
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
               Mengosongkan seluruh data server cloud Supabase di PostgreSQL.
             </p>
             <button
@@ -1009,21 +1009,21 @@ export function AdminModularStudio() {
 
       {/* MODAL KONFIRMASI RESET */}
       {showConfirmResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-sm rounded-3xl border-2 border-rose-400 bg-white p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm rounded-3xl border-2 border-rose-400 dark:border-rose-600 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 border-2 border-rose-300 text-rose-600">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-950/80 border-2 border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400">
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900">
+                <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
                   {showConfirmResetModal === "LOCAL" ? "Kosongkan DB Lokal?" : "Kosongkan DB Cloud?"}
                 </h3>
                 <p className="text-xs font-bold text-slate-400">Konfirmasi tindakan berbahaya</p>
               </div>
             </div>
 
-            <p className="text-xs font-bold text-slate-600 leading-relaxed">
+            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
               {showConfirmResetModal === "LOCAL"
                 ? "Tindakan ini akan menghapus seluruh data kandang, modul, populasi, dan riwayat yang tersimpan di browser ini. Data yang sudah tersinkron ke cloud tidak terhapus."
                 : "Tindakan ini akan menghapus seluruh data di PostgreSQL Supabase secara permanen. Perangkat lain yang melakukan sync nantinya akan mendapati database server kosong."}
@@ -1033,7 +1033,7 @@ export function AdminModularStudio() {
               <button
                 type="button"
                 onClick={() => setShowConfirmResetModal(null)}
-                className="flex-1 rounded-xl border-2 border-slate-300 bg-white py-2.5 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 transition"
+                className="flex-1 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 py-2.5 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 active:scale-95 transition"
               >
                 Batal
               </button>

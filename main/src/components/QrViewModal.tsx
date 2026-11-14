@@ -77,20 +77,20 @@ export function QrViewModal({ container, module, onClose }: QrViewModalProps) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm print:p-0 print:bg-white"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs print:p-0 print:bg-white"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-3xl border-2 border-emerald-600 bg-white p-6 shadow-2xl space-y-4 print:border-none print:shadow-none print:max-w-none"
+        className="w-full max-w-sm rounded-3xl border-2 border-emerald-600 dark:border-emerald-500 bg-white dark:bg-slate-900 p-6 shadow-2xl space-y-4 print:border-none print:shadow-none print:max-w-none"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3 print:hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 print:hidden">
           <div className="flex items-center gap-2">
-            <QrCode className="h-5 w-5 text-emerald-700" />
-            <h3 className="text-base font-black text-slate-900">QR Code Kandang / Wadah</h3>
+            <QrCode className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+            <h3 className="text-base font-black text-slate-900 dark:text-slate-100">QR Code Kandang / Wadah</h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"
+            className="rounded-xl border border-slate-200 dark:border-slate-800 p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="h-5 w-5" />
           </button>
@@ -99,12 +99,12 @@ export function QrViewModal({ container, module, onClose }: QrViewModalProps) {
         {/* Printable Card */}
         <div
           ref={qrRef}
-          className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center print:border-2 print:border-slate-800 print:bg-white"
+          className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-6 text-center print:border-2 print:border-slate-800 print:bg-white"
         >
-          <span className="rounded-md bg-emerald-100 px-2.5 py-0.5 text-xs font-black uppercase text-emerald-950">
+          <span className="rounded-md bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-0.5 text-xs font-black uppercase text-emerald-950 dark:text-emerald-300">
             {module?.name || "CymFarm"}
           </span>
-          <h2 className="text-xl font-black text-slate-900 mt-1">
+          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 mt-1">
             {container.name}
           </h2>
 
@@ -117,10 +117,10 @@ export function QrViewModal({ container, module, onClose }: QrViewModalProps) {
             />
           </div>
 
-          <div className="text-base font-black tracking-widest text-slate-800 font-mono">
+          <div className="text-base font-black tracking-widest text-slate-800 dark:text-slate-200 font-mono">
             {container.code}
           </div>
-          <p className="text-[11px] font-bold text-slate-400 mt-1 max-w-[220px]">
+          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mt-1 max-w-[220px]">
             Scan menggunakan aplikasi CymFarm untuk aksi cepat rawat & panen.
           </p>
         </div>
@@ -129,14 +129,14 @@ export function QrViewModal({ container, module, onClose }: QrViewModalProps) {
         <div className="flex gap-2 pt-1 print:hidden">
           <button
             onClick={handleDownload}
-            className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-700 bg-emerald-50 py-3 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95 transition"
+            className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-700 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 py-3 text-xs font-black text-emerald-950 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 active:scale-95 transition"
           >
-            <Download className="h-4 w-4 text-emerald-700" />
+            <Download className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
             <span>Unduh PNG</span>
           </button>
           <button
             onClick={handlePrint}
-            className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3 text-xs font-black text-white hover:bg-slate-800 active:scale-95 transition"
+            className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-slate-900 dark:bg-slate-800 py-3 text-xs font-black text-white hover:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 transition border border-transparent dark:border-slate-700"
           >
             <Printer className="h-4 w-4" />
             <span>Cetak (Print)</span>
