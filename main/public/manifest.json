@@ -2,7 +2,7 @@
   "name": "CymFarm — Family Farm Management",
   "short_name": "CymFarm",
   "description": "Aplikasi Manajemen Peternakan Keluarga (Ayam, Lele, & Modul Dinamis)",
-  "start_url": "/",
+  "start_url": "/lapangan",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#10b981",

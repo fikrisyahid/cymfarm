@@ -1,5 +1,5 @@
 // CymFarm Offline PWA Service Worker Cache
-const CACHE_NAME = "cymfarm-cache-v2";
+const CACHE_NAME = "cymfarm-cache-v3";
 
 const STATIC_ASSETS = [
   "/lapangan",
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   "/icon.svg",
   "/icon-192.png",
   "/icon-512.png",
+  "/favicon.ico",
 ];
 
 // Install: pre-cache essential assets
@@ -33,56 +34,69 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network first for API/sync, Cache first for offline shell assets
+// Fetch: Strategy for offline PWA
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Jangan cache API sync / auth (biar selalu fresh atau ditangani Dexie secara offline)
+  // 1. Jangan intercept API sync / auth (biarkan online / ditangani Dexie & UI)
   if (url.pathname.startsWith("/api/")) {
     return;
   }
 
-  // Jika navigasi ke root '/', bypass SW cache dan biarkan network/Next.js middleware redirect ke /lapangan
-  if (request.mode === "navigate" && url.pathname === "/") {
+  // 2. Handle HTML navigation (buka halaman atau restart app)
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          // Jika online dan respon 200, update cache halaman ini
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          // OFFLINE: cari fallback halaman
+          const cache = await caches.open(CACHE_NAME);
+          const matched =
+            (await cache.match(request)) ||
+            (await cache.match(url.pathname)) ||
+            (await cache.match("/lapangan"));
+          return matched || Response.error();
+        })
+    );
     return;
   }
 
+  // 3. Handle static assets (_next/static, css, js, icons, images)
+  // Cache-first, fallback network, auto-cache new static files
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Fetch background update (stale-while-revalidate)
-        fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, networkResponse);
-              });
-            }
-          })
-          .catch(() => {
-            // offline, ignore
-          });
         return cachedResponse;
       }
 
-      // If not in cache, fetch from network and cache it
       return fetch(request)
         .then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
-            return networkResponse;
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            (url.pathname.startsWith("/_next/static/") ||
+              url.pathname.endsWith(".svg") ||
+              url.pathname.endsWith(".png") ||
+              url.pathname.endsWith(".ico") ||
+              url.pathname.endsWith(".json"))
+          ) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
           }
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
           return networkResponse;
         })
         .catch(() => {
-          // If offline and navigate to html, fallback to cached /lapangan
-          if (request.mode === "navigate") {
-            return caches.match("/lapangan");
-          }
+          return Response.error();
         });
     })
   );
