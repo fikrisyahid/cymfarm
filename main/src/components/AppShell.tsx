@@ -116,21 +116,12 @@ export function AppShell({
                 year: "numeric",
               })}
             </span>
-            {isToday ? (
-              <span className="rounded-md bg-emerald-700 dark:bg-emerald-600 px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wider shrink-0">
-                Hari Ini
-              </span>
-            ) : (
-              <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wider shrink-0">
-                Masa Lalu
-              </span>
-            )}
           </button>
 
           {!isToday && (
             <button
               onClick={goToToday}
-              className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1.5 text-[10px] font-black text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 active:scale-95 transition"
+              className="rounded-xl border-2 border-emerald-500 dark:border-emerald-600 bg-emerald-600 dark:bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700 shadow-xs active:scale-95 transition shrink-0"
               title="Kembali ke Hari Ini"
             >
               Hari Ini
