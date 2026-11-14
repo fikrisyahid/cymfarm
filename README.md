@@ -10,7 +10,9 @@ Dirancang untuk kemudahan penggunaan di lapangan oleh seluruh anggota keluarga (
 
 - **Offline-First (PWA)**: Beroperasi 100% tanpa internet di kandang menggunakan IndexedDB. Begitu terkoneksi internet, sinkronisasi dua arah otomatis berjalan ke Supabase PostgreSQL.
 - **Sistem Modular Tanpa Koding Ulang**: Tambah sistem ternak/tanaman baru (Ayam, Lele, Kambing, Jamur, Sayur) langsung via formulir Admin Studio.
-- **UI Lapangan Sederhana**: Tombol besar **Rawat** (hijau) & **Panen** (kuning), counter frekuensi harian, riwayat, dan tombol Undo instan.
+- **UI Lapangan Sederhana**: Tombol besar **Rawat** (hijau) & **Panen** (kuning), counter frekuensi harian, Date Picker tanggal operasional, dan sistem **Revisi Harian Langsung** (bisa disetel ke 0 jika salah klik).
+- **Analisa & Tren Lapangan**: Grafik batang tren panen & frekuensi pakan harian/bulanan yang responsif dan ramah perangkat seluler.
+- **Setelan & Dark Mode Penuh**: Konfigurasi tema terang & gelap untuk kenyamanan mata di lapangan saat malam hari.
 - **Scanner & Generator QR Code**: Pindai QR di kandang langsung membuka status wadah terkait; unduh dan cetak stiker QR dari browser.
 
 ---

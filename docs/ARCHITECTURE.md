@@ -49,8 +49,9 @@ cymfarm/
     │   ├── icon-192.png  # PWA standard Android icon (192px)
     │   └── icon-512.png  # PWA splash screen icon (512px)
     └── src/
-        ├── app/          # Next.js App Router (/lapangan, /riwayat, /admin, /login, /api/sync)
+        ├── app/          # Next.js App Router (/lapangan, /analisa, /riwayat, /pengaturan, /admin, /login, /api/sync)
         ├── components/   # ModularWorkerView, AdminModularStudio, AppShell, QrScanner, etc.
+        ├── context/      # DateContext (Global operational date state)
         ├── db/           # Drizzle ORM schema & client
         └── lib/          # offline-db.ts, sync-engine.ts, activity-undo.ts
 ```
@@ -76,7 +77,7 @@ Skema database terletak di `main/src/db/schema.ts` dan terdiri dari tabel-tabel 
    - Subjek populasi penghuni wadah. Menyimpan `populationCount`, `isActive`, `lastRoutineDate`, dan `lastHarvestDate`.
 5. **`activity_logs`**:
    - Buku jurnal aktivitas historis lapangan (`ROUTINE`, `HARVEST`, `POPULATION_CHANGE`, `MAINTENANCE`, `TERMINATE`, `CREATE`).
-   - Menyimpan referensi wadah, subjek, kuantitas, catatan, dan timestamp ISO `performedAt`.
+   - Menyimpan referensi wadah, subjek, kuantitas, catatan, timestamp `performedAt`, dan **`targetDate`** (`target_date`) yang mengunci tanggal operasional perlakuan wadah.
 
 ---
 
@@ -104,10 +105,12 @@ Sinkronisasi dua arah dikendalikan oleh `main/src/lib/sync-engine.ts` dan endpoi
    - Log `POPULATION_CHANGE` -> Menyetel `populationCount` ke nilai mutlak target.
    - Log `TERMINATE` -> Mengubah status wadah menjadi `VACANT` dan subjek `isActive = false`.
 
-### C. Pembatalan Terintegrasi (Append-Only Undo di Lapangan)
-1. **Tidak Ada Hard Delete pada Log**: Aksi Undo **tidak menghapus baris lama** dari tabel riwayat.
-2. **Mencatat Event Undo Baru**: Sistem menambahkan log baru bertipe `activityType: 'UNDO'` dan membatalkan status wadah/subjek ke kondisi sebelumnya.
-3. **Pemberian Tombol di Lapangan**: Tombol Undo tersedia langsung di kartu wadah lapangan (tepat di bawah tombol pakan/panen) dan di notifikasi toast, sehingga pekerja dapat membatalkan aksi salah pencet tanpa harus membuka halaman `/riwayat`.
+### C. Daily State Revision & Append-Only Record
+1. **Tidak Ada Rollback Destruktif (Pure Append-Only)**: Tidak ada pemotongan atau penghapusan baris data saat pengguna merevisi kesalahan input di lapangan.
+2. **Kuantitas Absolut & Target Date**:
+   - Setiap revisi (pakan, panen, atau populasi) menghasilkan baris log baru dengan `targetDate: selectedDate` dan nilai pasti kuantitas baru.
+   - Contoh: Jika pengguna salah menekan tombol pakan, pengguna cukup menggunakan menu **Revisi Jumlah Kasih Pakan** dan menyetel angka ke `0x`. Sistem mencatat entri log revisi terbaru dengan `quantity: 0`, sehingga status wadah pada tanggal tersebut otomatis kembali menjadi belum dirawat tanpa merusak riwayat audit.
+3. **Penyelarasan Masa Lalu (Backdating)**: Pengguna dapat memundurkan tanggal operasional melalui header Date Picker untuk menginput atau merevisi catatan hari-hari kemarin. Status wadah pada hari itu dievaluasi dari log perlakuan terakhir yang memiliki `targetDate` bersangkutan.
 
 ---
 
