@@ -68,9 +68,16 @@ export async function undoActivityLog(logId: string): Promise<{ success: boolean
             syncedToCloud: false,
           });
         } else if (activityType === "POPULATION_CHANGE") {
-          // Invert the population change quantity
-          const diff = Number(quantity) || 0;
-          const restoredPopulation = Math.max(0, subject.populationCount - diff);
+          // Cari log populasi sebelumnya untuk container ini
+          const allOtherPopLogs = await localDb.activityLogs
+            .where("containerId")
+            .equals(containerId)
+            .filter((l) => l.id !== logId && l.activityType === "POPULATION_CHANGE")
+            .toArray();
+
+          const sorted = allOtherPopLogs.sort((a, b) => b.performedAt.localeCompare(a.performedAt));
+          const restoredPopulation = sorted[0] ? Number(sorted[0].quantity) || 0 : 0;
+
           await localDb.subjects.update(subjectId, {
             populationCount: restoredPopulation,
             updatedAt: new Date().toISOString(),
@@ -88,21 +95,20 @@ export async function undoActivityLog(logId: string): Promise<{ success: boolean
       });
     }
 
-    // 2. Remove log from local DB
-    await localDb.activityLogs.delete(logId);
-
-    // 3. If it was already pushed to cloud, inform server to delete and wait for response
-    if (syncedToCloud) {
-      try {
-        await fetch("/api/sync/undo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ logId }),
-        });
-      } catch (err) {
-        console.warn("Background cloud undo notice:", err);
-      }
-    }
+    // 2. Catat event UNDO baru ke activity log (Never Delete, Pure Append)
+    const undoLogId = `log-undo-${Date.now()}`;
+    await localDb.activityLogs.put({
+      id: undoLogId,
+      moduleId: log.moduleId,
+      containerId: log.containerId,
+      subjectId: log.subjectId,
+      activityType: "UNDO" as any,
+      quantity: log.quantity,
+      unit: log.unit,
+      note: `↩️ Batalkan aksi: ${log.note || activityType}`,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
 
     return { success: true, message: `Aksi ${log.note || activityType} berhasil dibatalkan (Undo)!` };
   } catch (error: any) {
