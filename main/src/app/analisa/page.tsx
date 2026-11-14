@@ -80,22 +80,22 @@ export default function AnalisaPage() {
     <AppShell>
       <div className="w-full space-y-5 pb-20">
         {/* Header Analisa */}
-        <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-xs space-y-3">
+        <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-3">
           <div className="flex items-center gap-2">
-            <LineChart className="h-5 w-5 text-emerald-700" />
-            <h2 className="text-xl font-black text-slate-900">Analisa & Tren Lapangan</h2>
+            <LineChart className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Analisa & Tren Lapangan</h2>
           </div>
-          <p className="text-xs font-bold text-slate-500">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
             Pantau intensitas perawatan pakan dan produktivitas hasil panen mingguan & bulanan.
           </p>
 
           {/* Filter Bar: Modul & Range */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             {/* Filter Modul Ternak */}
             <select
               value={selectedModuleId}
               onChange={(e) => setSelectedModuleId(e.target.value)}
-              className="rounded-xl border-2 border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+              className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-600 dark:focus:border-emerald-500"
             >
               <option value="ALL">Semua Komoditas</option>
               {(modules || []).map((m) => (
@@ -106,11 +106,11 @@ export default function AnalisaPage() {
             </select>
 
             {/* Toggle 7 Hari vs 30 Hari */}
-            <div className="flex rounded-xl border-2 border-slate-300 bg-slate-100 p-0.5 text-xs font-black">
+            <div className="flex rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-0.5 text-xs font-black">
               <button
                 onClick={() => setRangeMode("7D")}
                 className={`rounded-lg px-3 py-1.5 transition ${
-                  rangeMode === "7D" ? "bg-white text-emerald-950 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  rangeMode === "7D" ? "bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-xs" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
                 7 Hari
@@ -118,7 +118,7 @@ export default function AnalisaPage() {
               <button
                 onClick={() => setRangeMode("30D")}
                 className={`rounded-lg px-3 py-1.5 transition ${
-                  rangeMode === "30D" ? "bg-white text-emerald-950 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  rangeMode === "30D" ? "bg-white dark:bg-slate-700 text-emerald-950 dark:text-emerald-300 shadow-xs" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
                 30 Hari
@@ -129,64 +129,64 @@ export default function AnalisaPage() {
 
         {/* 1. KARTU METRIK UTAMA (3 KARTU RESPONSIVE) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-3xl border-2 border-slate-300 bg-white p-4 shadow-xs text-center space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-black text-amber-700 uppercase">
+          <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs text-center space-y-1">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-black text-amber-700 dark:text-amber-400 uppercase">
               <Scissors className="h-4 w-4" />
               <span>Total Panen</span>
             </div>
-            <div className="text-3xl font-black text-slate-900">{stats.totalHarvest}</div>
+            <div className="text-3xl font-black text-slate-900 dark:text-slate-100">{stats.totalHarvest}</div>
             <div className="text-[10px] font-bold text-slate-400">Dalam {rangeMode === "7D" ? "7" : "30"} hari terakhir</div>
           </div>
 
-          <div className="rounded-3xl border-2 border-slate-300 bg-white p-4 shadow-xs text-center space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-black text-emerald-700 uppercase">
+          <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs text-center space-y-1">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase">
               <Utensils className="h-4 w-4" />
               <span>Rata-Rata Rawat</span>
             </div>
-            <div className="text-3xl font-black text-slate-900">{stats.avgRoutine}x</div>
+            <div className="text-3xl font-black text-slate-900 dark:text-slate-100">{stats.avgRoutine}x</div>
             <div className="text-[10px] font-bold text-slate-400">Frekuensi pakan per hari</div>
           </div>
 
-          <div className="rounded-3xl border-2 border-slate-300 bg-white p-4 shadow-xs text-center space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-black text-blue-700 uppercase">
+          <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs text-center space-y-1">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-black text-blue-700 dark:text-blue-400 uppercase">
               <CheckCircle className="h-4 w-4" />
               <span>Hari Aktif</span>
             </div>
-            <div className="text-3xl font-black text-slate-900">{stats.daysWithRoutine} <span className="text-base text-slate-400 font-bold">/ {chartData.length}</span></div>
+            <div className="text-3xl font-black text-slate-900 dark:text-slate-100">{stats.daysWithRoutine} <span className="text-base text-slate-400 font-bold">/ {chartData.length}</span></div>
             <div className="text-[10px] font-bold text-slate-400">Hari dengan perawatan tercatat</div>
           </div>
         </div>
 
         {/* 2. GRAFIK TREN PANEN (VERTICAL BAR DIALOG DI HP) */}
-        <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-xs space-y-4">
+        <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-amber-600" />
-              <h3 className="text-sm font-black text-slate-900">Grafik Produksi Panen</h3>
+              <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">Grafik Produksi Panen</h3>
             </div>
             <span className="text-[10px] font-bold text-slate-400">Satuan hasil panen</span>
           </div>
 
           {/* Chart Viewport (Horizontal Scrollable pada mode 30 hari di HP) */}
           <div className="overflow-x-auto no-scrollbar pt-4 pb-2">
-            <div className="flex items-end justify-between gap-2 min-w-full h-44 border-b-2 border-slate-200 px-2">
+            <div className="flex items-end justify-between gap-2 min-w-full h-44 border-b-2 border-slate-200 dark:border-slate-800 px-2">
               {chartData.map((d) => {
                 const heightPercent = stats.maxHarvest > 0 ? Math.round((d.harvestQty / stats.maxHarvest) * 100) : 0;
                 return (
                   <div key={d.dateStr} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group min-w-[28px]">
-                    <span className="text-[10px] font-black text-amber-900 opacity-0 group-hover:opacity-100 transition">
+                    <span className="text-[10px] font-black text-amber-900 dark:text-amber-300 opacity-0 group-hover:opacity-100 transition">
                       {d.harvestQty}
                     </span>
                     <div
                       style={{ height: `${Math.max(6, heightPercent)}%` }}
                       className={`w-full max-w-[24px] rounded-t-lg transition-all duration-300 ${
                         d.harvestQty > 0
-                          ? "bg-amber-400 hover:bg-amber-500 shadow-2xs"
-                          : "bg-slate-100"
+                          ? "bg-amber-400 dark:bg-amber-500 hover:bg-amber-500 shadow-2xs"
+                          : "bg-slate-100 dark:bg-slate-800"
                       }`}
                       title={`${d.dateStr}: ${d.harvestQty} hasil panen`}
                     />
-                    <span className="text-[10px] font-bold text-slate-500 truncate w-full text-center">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate w-full text-center">
                       {d.dayLabel}
                     </span>
                   </div>
@@ -197,35 +197,35 @@ export default function AnalisaPage() {
         </div>
 
         {/* 3. GRAFIK KEDISIPLINAN PERAWATAN & PAKAN */}
-        <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-xs space-y-4">
+        <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Utensils className="h-4 w-4 text-emerald-700" />
-              <h3 className="text-sm font-black text-slate-900">Grafik Frekuensi Rawat / Pakan</h3>
+              <Utensils className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
+              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">Grafik Frekuensi Rawat / Pakan</h3>
             </div>
             <span className="text-[10px] font-bold text-slate-400">Berapa kali pakan per hari</span>
           </div>
 
           {/* Chart Viewport */}
           <div className="overflow-x-auto no-scrollbar pt-4 pb-2">
-            <div className="flex items-end justify-between gap-2 min-w-full h-40 border-b-2 border-slate-200 px-2">
+            <div className="flex items-end justify-between gap-2 min-w-full h-40 border-b-2 border-slate-200 dark:border-slate-800 px-2">
               {chartData.map((d) => {
                 const heightPercent = stats.maxRoutine > 0 ? Math.round((d.routineCount / stats.maxRoutine) * 100) : 0;
                 return (
                   <div key={d.dateStr} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group min-w-[28px]">
-                    <span className="text-[10px] font-black text-emerald-900 opacity-0 group-hover:opacity-100 transition">
+                    <span className="text-[10px] font-black text-emerald-900 dark:text-emerald-300 opacity-0 group-hover:opacity-100 transition">
                       {d.routineCount}x
                     </span>
                     <div
                       style={{ height: `${Math.max(6, heightPercent)}%` }}
                       className={`w-full max-w-[24px] rounded-t-lg transition-all duration-300 ${
                         d.routineCount > 0
-                          ? "bg-emerald-600 hover:bg-emerald-700 shadow-2xs"
-                          : "bg-slate-100"
+                          ? "bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 shadow-2xs"
+                          : "bg-slate-100 dark:bg-slate-800"
                       }`}
                       title={`${d.dateStr}: ${d.routineCount}x pakan`}
                     />
-                    <span className="text-[10px] font-bold text-slate-500 truncate w-full text-center">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate w-full text-center">
                       {d.dayLabel}
                     </span>
                   </div>

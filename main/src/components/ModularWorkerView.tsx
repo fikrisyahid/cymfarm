@@ -481,20 +481,20 @@ export function ModularWorkerView({
     <div className="w-full space-y-4 pb-20">
       {/* Peringatan jika sedang melihat / mengedit data masa lalu */}
       {!isToday && (
-        <div className="flex items-center justify-between gap-2 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-950 font-bold shadow-2xs">
+        <div className="flex items-center justify-between gap-2 rounded-2xl border-2 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 text-xs text-amber-950 dark:text-amber-300 font-bold shadow-2xs">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-amber-700 shrink-0" />
+            <Calendar className="h-4 w-4 text-amber-700 dark:text-amber-400 shrink-0" />
             <span>Mode Tanggal Lampau: Mengedit catatan untuk <strong>{selectedDate}</strong></span>
           </div>
         </div>
       )}
 
       {/* 1. CAROUSEL NAVIGASI LOKASI / WADAH */}
-      <div className="flex items-center justify-between gap-2 rounded-3xl border-2 border-slate-300 bg-white p-3 shadow-xs">
+      <div className="flex items-center justify-between gap-2 rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-xs">
         <button
           onClick={handlePrev}
           disabled={activeIndex === 0}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition shrink-0"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 active:scale-95 transition shrink-0"
           title="Kandang Sebelumnya"
         >
           <ChevronLeft className="h-6 w-6 stroke-[3]" />
@@ -502,21 +502,21 @@ export function ModularWorkerView({
 
         {/* Center Carousel: Title Info */}
         <div className="text-center min-w-0 flex-1 px-1">
-          <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950">
+          <span className="rounded-md bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-950 dark:text-emerald-300">
             {currentModule?.name || "Sistem Ternak"}
           </span>
-          <h2 className="text-xl font-black text-slate-900 truncate mt-0.5">
+          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 truncate mt-0.5">
             {currentContainer.name}
           </h2>
-          <div className="text-xs font-bold text-slate-500">
-            Kode: <span className="font-black text-slate-800">{currentContainer.code}</span> • {activeIndex + 1} dari {displayContainers.length}
+          <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
+            Kode: <span className="font-black text-slate-800 dark:text-slate-200">{currentContainer.code}</span> • {activeIndex + 1} dari {displayContainers.length}
           </div>
         </div>
 
         <button
           onClick={handleNext}
           disabled={activeIndex === displayContainers.length - 1}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-30 active:scale-95 transition shrink-0"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 active:scale-95 transition shrink-0"
           title="Kandang Berikutnya"
         >
           <ChevronRight className="h-6 w-6 stroke-[3]" />
@@ -527,29 +527,29 @@ export function ModularWorkerView({
       <div>
         <button
           onClick={() => setShowGridModal(true)}
-          className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-white py-3 px-4 text-xs font-black text-slate-800 shadow-xs hover:bg-slate-50 active:scale-95 transition"
+          className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-3 px-4 text-xs font-black text-slate-800 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition"
         >
-          <LayoutGrid className="h-4 w-4 text-emerald-700" />
+          <LayoutGrid className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
           <span>Buka Semua Kandang ({displayContainers.length} Wadah)</span>
         </button>
       </div>
 
       {/* 2. KARTU STATUS POPULASI & QUICK ADJUST */}
-      <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 text-center shadow-sm relative overflow-hidden">
+      <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-center shadow-sm relative overflow-hidden">
         <div className="flex items-center justify-between">
           <span className="text-xs font-black uppercase tracking-wider text-slate-400">
             Populasi Saat Ini
           </span>
           {currentPopulation === 0 && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-black uppercase text-slate-500">
+            <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">
               Wadah Kosong / 0
             </span>
           )}
         </div>
 
-        <div className="text-4xl font-black text-slate-900 mt-1">
+        <div className="text-4xl font-black text-slate-900 dark:text-slate-100 mt-1">
           {currentPopulation}{" "}
-          <span className="text-base font-bold text-slate-500">Ekor / Unit</span>
+          <span className="text-base font-bold text-slate-500 dark:text-slate-400">Ekor / Unit</span>
         </div>
 
         {/* Action Button untuk Tambah/Ubah Populasi */}
@@ -560,7 +560,7 @@ export function ModularWorkerView({
               setPopChangeAmount(1);
               setShowPopulationModal(true);
             }}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-xs font-black text-slate-800 hover:bg-slate-100 active:scale-95 transition shadow-2xs"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 py-3 text-xs font-black text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition shadow-2xs"
           >
             <span>Update Jumlah Ternak / Bibit</span>
           </button>
@@ -575,13 +575,13 @@ export function ModularWorkerView({
             onClick={handleQuickAddRoutine}
             className={`flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
               isRoutineDoneOnDate
-                ? "border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
+                ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-950 dark:text-emerald-200 hover:bg-emerald-100"
                 : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
             }`}
           >
             <div className="flex items-center gap-2 text-xl font-black">
               {isRoutineDoneOnDate ? (
-                <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+                <CheckCircle2 className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               ) : (
                 <Utensils className="h-7 w-7" />
               )}
@@ -589,7 +589,7 @@ export function ModularWorkerView({
             </div>
             <div className="text-xs font-bold opacity-90">
               {isRoutineDoneOnDate ? (
-                <span className="inline-flex items-center gap-1.5 font-black text-emerald-900">
+                <span className="inline-flex items-center gap-1.5 font-black text-emerald-900 dark:text-emerald-300">
                   <span>Sudah {routineCountOnDate}x pada tanggal ini</span>
                   {lastRoutineTimeStr && <span>• {lastRoutineTimeStr} WIB</span>}
                   <span className="text-[10px] font-normal opacity-75">(Tap +1)</span>
@@ -607,7 +607,7 @@ export function ModularWorkerView({
               setRoutineCountInput(routineCountOnDate);
               setShowRoutineModal(true);
             }}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition"
           >
             <Edit3 className="h-3.5 w-3.5 text-slate-500" />
             <span>Revisi Jumlah Kasih Pakan ({routineCountOnDate}x)</span>
@@ -668,7 +668,7 @@ export function ModularWorkerView({
               setIsHarvestRevision(true);
               setShowHarvestModal(true);
             }}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition"
           >
             <Edit3 className="h-3.5 w-3.5 text-slate-500" />
             <span>Revisi Hasil Panen ({totalHarvestQtyOnDate} {currentModule?.config.harvestUnitLabel || ""})</span>
@@ -680,7 +680,7 @@ export function ModularWorkerView({
       <div className="pt-2">
         <button
           onClick={() => setShowMaintenanceModal(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-xs font-black text-slate-600 hover:bg-slate-100 active:scale-95 transition"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 py-3 text-xs font-black text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition"
         >
           <Wrench className="h-4 w-4 text-rose-600" />
           <span>Lapor Kendala / Kerusakan Wadah Ini</span>

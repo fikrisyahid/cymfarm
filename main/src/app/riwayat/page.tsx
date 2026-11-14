@@ -59,14 +59,14 @@ export default function RiwayatPage() {
     <AppShell>
       <div className="w-full space-y-4 pb-20">
         {/* Header */}
-        <div className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-xs">
+        <div className="rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs">
           <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-emerald-700" />
-            <h2 className="text-xl font-black text-slate-900">
+            <Activity className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+            <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
               Riwayat Aktivitas Lapangan
             </h2>
           </div>
-          <p className="text-xs font-bold text-slate-500 mt-1">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
             Catatan setiap aksi rawat, pakan, & panen yang dikerjakan keluarga di kandang.
           </p>
 
@@ -78,7 +78,7 @@ export default function RiwayatPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari aktivitas (contoh: lele, pakan, panen)..."
-              className="w-full pl-10 pr-9 py-2.5 rounded-xl border-2 border-slate-300 text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+              className="w-full pl-10 pr-9 py-2.5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
             />
             {searchQuery && (
               <button
@@ -97,8 +97,8 @@ export default function RiwayatPage() {
               onClick={() => setSelectedFilter("ALL")}
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
                 selectedFilter === "ALL"
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               Semua ({logs?.length || 0})
@@ -108,7 +108,7 @@ export default function RiwayatPage() {
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
                 selectedFilter === "ROUTINE"
                   ? "bg-emerald-600 text-white"
-                  : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                  : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
               }`}
             >
               🍚 Rawat / Pakan
@@ -118,7 +118,7 @@ export default function RiwayatPage() {
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
                 selectedFilter === "HARVEST"
                   ? "bg-amber-600 text-white"
-                  : "bg-amber-50 text-amber-900 hover:bg-amber-100"
+                  : "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 hover:bg-amber-100"
               }`}
             >
               🧺 Panen
@@ -128,7 +128,7 @@ export default function RiwayatPage() {
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
                 selectedFilter === "POPULATION_CHANGE"
                   ? "bg-blue-600 text-white"
-                  : "bg-blue-50 text-blue-900 hover:bg-blue-100"
+                  : "bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 hover:bg-blue-100"
               }`}
             >
               📊 Populasi
@@ -138,29 +138,19 @@ export default function RiwayatPage() {
               className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
                 selectedFilter === "MAINTENANCE"
                   ? "bg-rose-600 text-white"
-                  : "bg-rose-50 text-rose-900 hover:bg-rose-100"
+                  : "bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-300 hover:bg-rose-100"
               }`}
             >
               ⚠️ Kendala
-            </button>
-            <button
-              onClick={() => setSelectedFilter("UNDO")}
-              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
-                selectedFilter === "UNDO"
-                  ? "bg-purple-600 text-white"
-                  : "bg-purple-50 text-purple-900 hover:bg-purple-100"
-              }`}
-            >
-              ↩️ Pembatalan (Undo)
             </button>
           </div>
         </div>
 
         {/* Logs List */}
         {filteredLogs.length === 0 ? (
-          <div className="rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-            <FileText className="mx-auto h-12 w-12 text-slate-300" />
-            <h4 className="mt-3 text-base font-black text-slate-700">
+          <div className="rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-12 text-center">
+            <FileText className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+            <h4 className="mt-3 text-base font-black text-slate-700 dark:text-slate-300">
               {logs?.length === 0 ? "Belum Ada Catatan Aktivitas" : "Tidak Ada Riwayat Yang Cocok"}
             </h4>
             <p className="mt-1 text-xs font-bold text-slate-400">
@@ -192,23 +182,23 @@ export default function RiwayatPage() {
               return (
                 <div
                   key={log.id}
-                  className="flex items-start justify-between gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-xs"
+                  className="flex items-start justify-between gap-3 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs"
                 >
                   <div>
                     <div className="flex items-center gap-2">
                       <span
                         className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
                           isRoutine
-                            ? "bg-emerald-100 text-emerald-900"
+                            ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
                             : isHarvest
-                            ? "bg-amber-100 text-amber-950"
+                            ? "bg-amber-100 text-amber-950 dark:bg-amber-950/60 dark:text-amber-300"
                             : isPopulation
-                            ? "bg-blue-100 text-blue-950"
+                            ? "bg-blue-100 text-blue-950 dark:bg-blue-950/60 dark:text-blue-300"
                             : isMaintenance
-                            ? "bg-rose-100 text-rose-950"
+                            ? "bg-rose-100 text-rose-950 dark:bg-rose-950/60 dark:text-rose-300"
                             : isUndo
-                            ? "bg-purple-100 text-purple-950"
-                            : "bg-slate-100 text-slate-700"
+                            ? "bg-purple-100 text-purple-950 dark:bg-purple-950/60 dark:text-purple-300"
+                            : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
                         {isRoutine
@@ -227,12 +217,12 @@ export default function RiwayatPage() {
                         {dateStr} • {timeStr}
                       </span>
                       {log.targetDate && log.targetDate !== log.performedAt.split("T")[0] && (
-                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-900">
+                        <span className="rounded bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 text-[10px] font-black text-amber-900 dark:text-amber-300">
                           Target: {log.targetDate}
                         </span>
                       )}
                     </div>
-                    <div className="text-sm font-black text-slate-900 mt-1">
+                    <div className="text-sm font-black text-slate-900 dark:text-slate-100 mt-1">
                       {log.note || "Aktivitas lapangan"}
                     </div>
                   </div>
@@ -243,10 +233,10 @@ export default function RiwayatPage() {
                         <div
                           className={`text-base font-black ${
                             isHarvest
-                              ? "text-amber-900"
+                              ? "text-amber-900 dark:text-amber-400"
                               : Number(log.quantity) > 0
-                              ? "text-blue-900"
-                              : "text-slate-700"
+                              ? "text-blue-900 dark:text-blue-400"
+                              : "text-slate-700 dark:text-slate-300"
                           }`}
                         >
                           {Number(log.quantity) > 0 ? `+${log.quantity}` : log.quantity}
