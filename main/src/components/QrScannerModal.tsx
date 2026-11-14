@@ -189,17 +189,17 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-3xl border-2 border-emerald-600 bg-white p-5 shadow-2xl space-y-3.5"
+        className="w-full max-w-sm rounded-3xl border-2 border-emerald-600 dark:border-emerald-500 bg-white dark:bg-slate-900 p-5 shadow-2xl space-y-3.5"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <Camera className="h-5 w-5 text-emerald-700" />
-            <h3 className="text-base font-black text-slate-900">Scan QR Kandang</h3>
+            <Camera className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+            <h3 className="text-base font-black text-slate-900 dark:text-slate-100">Scan QR Kandang</h3>
           </div>
           <button
             onClick={() => stopScanner().finally(onClose)}
-            className="rounded-xl border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"
+            className="rounded-xl border border-slate-200 dark:border-slate-800 p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="h-5 w-5" />
           </button>
@@ -208,8 +208,8 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
         {/* Dropdown Pemilihan Kamera di Luar Box Kamera */}
         {cameras.length > 0 && (
           <div className="space-y-1">
-            <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <SwitchCamera className="h-3.5 w-3.5 text-emerald-700" />
+            <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <SwitchCamera className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
               Pilih Kamera:
             </label>
             <div className="relative">
@@ -217,7 +217,7 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
                 value={selectedCameraId}
                 onChange={handleCameraChange}
                 disabled={isStarting}
-                className="w-full appearance-none rounded-xl border-2 border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none transition disabled:opacity-50"
+                className="w-full appearance-none rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-none transition disabled:opacity-50"
               >
                 {cameras.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -234,8 +234,8 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
 
         {/* Box Kamera Viewport */}
         {errorMessage ? (
-          <div className="rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50 p-4 text-center text-rose-800 space-y-2">
-            <AlertCircle className="mx-auto h-7 w-7 text-rose-600" />
+          <div className="rounded-2xl border-2 border-dashed border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 p-4 text-center text-rose-800 dark:text-rose-200 space-y-2">
+            <AlertCircle className="mx-auto h-7 w-7 text-rose-600 dark:text-rose-400" />
             <p className="text-xs font-black">{errorMessage}</p>
             <button
               onClick={() => selectedCameraId && startScanningWithCamera(selectedCameraId)}
@@ -245,7 +245,7 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
             </button>
           </div>
         ) : (
-          <div className="relative overflow-hidden rounded-2xl border-2 border-slate-800 bg-slate-950 aspect-square flex items-center justify-center">
+          <div className="relative overflow-hidden rounded-2xl border-2 border-slate-800 dark:border-slate-700 bg-slate-950 aspect-square flex items-center justify-center">
             {isStarting && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/80 text-white gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin text-emerald-400" />
@@ -259,7 +259,7 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
           </div>
         )}
 
-        <p className="text-[11px] font-bold text-slate-400 text-center">
+        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 text-center">
           Posisikan barcode QR tepat di dalam kotak kamera.
         </p>
 
@@ -278,16 +278,16 @@ export function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) 
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-600 bg-emerald-50 py-2.5 text-xs font-black text-emerald-950 hover:bg-emerald-100 active:scale-95 transition"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-600 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 py-2.5 text-xs font-black text-emerald-950 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 active:scale-95 transition"
           >
-            <Upload className="h-4 w-4 text-emerald-700" />
+            <Upload className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
             <span>Unggah Foto / Screenshot QR</span>
           </button>
         </div>
 
         <button
           onClick={() => stopScanner().finally(onClose)}
-          className="w-full rounded-2xl border-2 border-slate-300 bg-slate-100 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-200 active:scale-95 transition"
+          className="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-2.5 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition"
         >
           Tutup Scanner
         </button>
