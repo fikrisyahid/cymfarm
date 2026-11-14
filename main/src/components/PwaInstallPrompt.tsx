@@ -31,10 +31,14 @@ export function PwaInstallPrompt() {
       return;
     }
 
-    // 3. Cek apakah user sebelumnya pernah dismiss prompt ini
-    const dismissed = localStorage.getItem("cymfarm_pwa_dismissed");
-    if (dismissed) {
-      return;
+    // 3. Cek apakah user sebelumnya pernah dismiss prompt ini (delay 24 jam / 1 hari)
+    const dismissedAt = localStorage.getItem("cymfarm_pwa_dismissed_at");
+    if (dismissedAt) {
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const timePassed = Date.now() - Number(dismissedAt);
+      if (timePassed < oneDayMs) {
+        return; // belum lewat 24 jam, jangan tampilkan dulu
+      }
     }
 
     // 4. Tangkap event beforeinstallprompt (Chrome / Android / Desktop)
@@ -52,7 +56,7 @@ export function PwaInstallPrompt() {
       /iPad|iPhone|iPod/.test(navigator.userAgent) &&
       !(window as any).MSStream;
 
-    if (isIos && !dismissed) {
+    if (isIos && !dismissedAt) {
       setShowPrompt(true);
     }
 
@@ -80,7 +84,8 @@ export function PwaInstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem("cymfarm_pwa_dismissed", "true");
+    // Simpan timestamp saat ini, akan muncul lagi setelah 24 jam (1 hari)
+    localStorage.setItem("cymfarm_pwa_dismissed_at", Date.now().toString());
   };
 
   if (!showPrompt || isInstalled) return null;
