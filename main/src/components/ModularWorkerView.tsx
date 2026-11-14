@@ -24,6 +24,7 @@ import {
   X,
   MapPin,
   QrCode,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QrScannerModal } from "./QrScannerModal";
@@ -98,6 +99,22 @@ export function ModularWorkerView({
   // Query log aktivitas hari ini untuk container aktif
   const todayLogs = (allTodayLogs || []).filter(
     (l) => l.containerId === currentContainer?.id
+  );
+
+  // Ambil aktivitas aksi terakhir (yang bukan UNDO) untuk wadah ini agar bisa dibatalkan langsung di lapangan
+  const lastActionForContainer = useLiveQuery(
+    async () => {
+      if (!currentContainer) return null;
+      const logs = await localDb.activityLogs
+        .where("containerId")
+        .equals(currentContainer.id)
+        .filter((l) => (l.activityType as any) !== "UNDO")
+        .toArray();
+      if (!logs.length) return null;
+      return logs.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
+    },
+    [currentContainer?.id],
+    null
   );
 
   // Query panen historis paling akhir (kapanpun, termasuk kemarin/minggu lalu) untuk container aktif
@@ -621,11 +638,37 @@ export function ModularWorkerView({
         </button>
       </div>
 
-      {/* 5. LAPOR KENDALA / RUSAK */}
-      <div className="pt-2">
+      {/* 5. LAPOR KENDALA / RUSAK & QUICK UNDO DI LAPANGAN */}
+      <div className="space-y-2 pt-2">
+        {/* Tombol Quick Undo di Lapangan jika ada aksi sebelumnya */}
+        {lastActionForContainer && (
+          <div className="flex items-center justify-between rounded-2xl border border-dashed border-purple-300 bg-purple-50/70 p-3 text-xs">
+            <div className="truncate pr-2">
+              <span className="font-bold text-slate-500">Aksi terakhir: </span>
+              <span className="font-black text-slate-800">{lastActionForContainer.note || lastActionForContainer.activityType}</span>
+            </div>
+            <button
+              onClick={async () => {
+                const res = await undoActivityLog(lastActionForContainer.id);
+                if (res.success) {
+                  toast.success(res.message);
+                  runFarmSync().catch(() => {});
+                } else {
+                  toast.error(res.message);
+                }
+              }}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl border border-purple-300 bg-white px-3 py-1.5 text-xs font-black text-purple-800 shadow-2xs hover:bg-purple-100 active:scale-95 transition"
+              title="Batalkan aksi terakhir ini langsung dari lapangan"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+              <span>Batalkan (Undo)</span>
+            </button>
+          </div>
+        )}
+
         <button
           onClick={() => setShowMaintenanceModal(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3.5 text-xs font-black text-slate-600 hover:bg-slate-100 active:scale-95 transition"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-xs font-black text-slate-600 hover:bg-slate-100 active:scale-95 transition"
         >
           <Wrench className="h-4 w-4 text-rose-600" />
           <span>Lapor Kendala / Kerusakan Wadah Ini</span>
