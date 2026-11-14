@@ -101,11 +101,11 @@ export function AppShell({
         </button>
 
         {/* Date Picker di Tengah Header */}
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => setDatePickerOpen(true)}
-            className="flex items-center gap-1.5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 cursor-pointer hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition active:scale-98"
+            className="flex items-center gap-2 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 cursor-pointer hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition active:scale-98"
           >
             <Calendar className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
             <span className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">
@@ -117,11 +117,11 @@ export function AppShell({
               })}
             </span>
             {isToday ? (
-              <span className="rounded-md bg-emerald-700 dark:bg-emerald-600 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+              <span className="rounded-md bg-emerald-700 dark:bg-emerald-600 px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wider shrink-0">
                 Hari Ini
               </span>
             ) : (
-              <span className="rounded-md bg-amber-500 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+              <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white uppercase tracking-wider shrink-0">
                 Masa Lalu
               </span>
             )}
@@ -130,7 +130,7 @@ export function AppShell({
           {!isToday && (
             <button
               onClick={goToToday}
-              className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 text-[10px] font-black text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 active:scale-95 transition"
+              className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1.5 text-[10px] font-black text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 active:scale-95 transition"
               title="Kembali ke Hari Ini"
             >
               Hari Ini
