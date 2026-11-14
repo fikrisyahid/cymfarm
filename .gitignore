@@ -27,7 +27,7 @@ yarn-error.log*
 main/next-env.d.ts
 
 # PWA generated files (if applicable)
-main/public/sw.js
+# main/public/sw.js
 main/public/sw.js.map
 main/public/workbox-*.js
 main/public/workbox-*.js.map

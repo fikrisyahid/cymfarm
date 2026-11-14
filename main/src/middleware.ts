@@ -6,11 +6,12 @@ const SESSION_COOKIE_NAME = "cymfarm_session";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow static assets, API routes, and manifest
+  // Allow static assets, API routes, manifest, and service worker
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
     pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
     pathname === "/icon.svg" ||
     pathname === "/favicon.ico"
   ) {
