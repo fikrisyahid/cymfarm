@@ -186,6 +186,9 @@ export function AdminModularStudio() {
     };
     await localDb.subjects.put(newSubj);
 
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split("T")[0];
+
     await localDb.activityLogs.put({
       id: `log-cont-crt-${Date.now()}`,
       moduleId: targetModuleForContainer.id,
@@ -193,7 +196,8 @@ export function AdminModularStudio() {
       activityType: "CREATE",
       quantity: Number(newContainerCapacity) || 1,
       note: `Tambah wadah baru: ${newContainerName.trim()} (${cleanCode}) pada ${targetModuleForContainer.name}`,
-      performedAt: new Date().toISOString(),
+      targetDate: todayStr,
+      performedAt: nowIso,
       syncedToCloud: false,
     });
 
@@ -278,6 +282,7 @@ export function AdminModularStudio() {
         activityType: "CREATE",
         quantity: Number(containerCapacity) || 1,
         note: `Buat sistem farm baru: ${modName.trim()} (${cleanCode})`,
+        targetDate: new Date().toISOString().split("T")[0],
         performedAt: new Date().toISOString(),
         syncedToCloud: false,
       });
@@ -321,6 +326,7 @@ export function AdminModularStudio() {
       activityType: "TERMINATE",
       quantity: 1,
       note: `Hapus sistem modul: ${m.name}`,
+      targetDate: nowIso.split("T")[0],
       performedAt: nowIso,
       syncedToCloud: false,
     });

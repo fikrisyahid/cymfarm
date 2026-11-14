@@ -17,19 +17,16 @@ import {
   CheckCircle2,
   Wrench,
   AlertTriangle,
-  Plus,
   LayoutGrid,
-  Camera,
   Check,
   X,
-  MapPin,
-  QrCode,
-  Undo2,
+  Edit3,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QrScannerModal } from "./QrScannerModal";
-import { undoActivityLog } from "@/lib/activity-undo";
 import { runFarmSync } from "@/lib/sync-engine";
+import { useOperasionalDate } from "@/context/DateContext";
 
 interface ModularWorkerViewProps {
   containers: LocalContainer[];
@@ -46,11 +43,21 @@ export function ModularWorkerView({
   selectedCode,
   onSelectCode,
 }: ModularWorkerViewProps) {
-  // Semua container yang terdaftar tetap ditampilkan (termasuk yang populasinya 0 atau berstatus kosong)
+  const { selectedDate, isToday } = useOperasionalDate();
+
+  // Semua container yang terdaftar tetap ditampilkan
   const displayContainers = containers;
 
+  // Modal Panen & Revisi Panen
   const [harvestInput, setHarvestInput] = useState<number>(1);
   const [showHarvestModal, setShowHarvestModal] = useState(false);
+  const [isHarvestRevision, setIsHarvestRevision] = useState(false);
+
+  // Modal Revisi Pakan/Rawat
+  const [showRoutineModal, setShowRoutineModal] = useState(false);
+  const [routineCountInput, setRoutineCountInput] = useState<number>(0);
+
+  // Modal Lapor Kendala
   const [maintenanceNote, setMaintenanceNote] = useState("");
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
 
@@ -77,54 +84,43 @@ export function ModularWorkerView({
 
   const currentPopulation = currentSubject?.populationCount ?? 0;
 
-  const todayStr = getTodayDateStr();
-
-  // Query semua aktivitas hari ini untuk pemetaan status pakan seluruh kandang
-  const allTodayLogs = useLiveQuery(
+  // Query semua aktivitas pada target date terpilih (selectedDate)
+  const allDateLogs = useLiveQuery(
     async () => {
       const logs = await localDb.activityLogs.toArray();
-      return logs.filter((l) => l.performedAt.startsWith(todayStr));
+      return logs.filter((l) => {
+        const logDate = l.targetDate || l.performedAt.split("T")[0];
+        return logDate === selectedDate;
+      });
     },
-    [todayStr],
+    [selectedDate],
     []
   );
 
-  // Set ID container yang sudah dikasih pakan/rawat hari ini
-  const fedContainerIdsToday = new Set(
-    (allTodayLogs || [])
-      .filter((l) => l.activityType === "ROUTINE")
+  // Set ID container yang sudah dikasih pakan/rawat pada target date
+  const fedContainerIdsOnDate = new Set(
+    (allDateLogs || [])
+      .filter((l) => {
+        if (l.activityType !== "ROUTINE") return false;
+        // Jika ada kuantitas 0 (revisi jadi 0), jangan anggap sudah dikasih pakan
+        return (l.quantity ?? 1) > 0;
+      })
       .map((l) => l.containerId)
   );
 
-  // Query log aktivitas hari ini untuk container aktif
-  const todayLogs = (allTodayLogs || []).filter(
+  // Query log aktivitas target date untuk container aktif
+  const selectedDateLogs = (allDateLogs || []).filter(
     (l) => l.containerId === currentContainer?.id
   );
 
-  // Ambil aktivitas aksi terakhir (yang bukan UNDO) untuk wadah ini agar bisa dibatalkan langsung di lapangan
-  const lastActionForContainer = useLiveQuery(
-    async () => {
-      if (!currentContainer) return null;
-      const logs = await localDb.activityLogs
-        .where("containerId")
-        .equals(currentContainer.id)
-        .filter((l) => (l.activityType as any) !== "UNDO")
-        .toArray();
-      if (!logs.length) return null;
-      return logs.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
-    },
-    [currentContainer?.id],
-    null
-  );
-
-  // Query panen historis paling akhir (kapanpun, termasuk kemarin/minggu lalu) untuk container aktif
+  // Query panen historis paling akhir kapanpun untuk container aktif
   const lastEverHarvestLog = useLiveQuery(
     async () => {
       if (!currentContainer) return null;
       const logs = await localDb.activityLogs
         .where("containerId")
         .equals(currentContainer.id)
-        .filter((l) => l.activityType === "HARVEST")
+        .filter((l) => l.activityType === "HARVEST" && (l.quantity ?? 0) > 0)
         .toArray();
       if (!logs.length) return null;
       return logs.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
@@ -133,10 +129,24 @@ export function ModularWorkerView({
     null
   );
 
-  // Hitung berapa kali pakan/rawat hari ini & kapan terakhir
-  const routineLogsToday = (todayLogs || []).filter((l) => l.activityType === "ROUTINE");
-  const routineCountToday = routineLogsToday.length;
-  const lastRoutineLog = routineLogsToday.sort((a, b) => b.performedAt.localeCompare(a.performedAt))[0];
+  // Evaluasi Routine Count pada target date
+  // Aksi append-only: Ambil log routine terbaru pada target date untuk menentukan state hari itu.
+  // Jika log terbaru punya catatan revisi langsung atau kuantitas, atau hitung jumlah.
+  const routineLogsOnDate = (selectedDateLogs || [])
+    .filter((l) => l.activityType === "ROUTINE")
+    .sort((a, b) => b.performedAt.localeCompare(a.performedAt));
+
+  const lastRoutineLog = routineLogsOnDate[0] || null;
+  // Jika entri terakhir adalah REVISION (ditandai dengan note revisi atau kuantitas eksplisit), gunakan kuantitasnya,
+  // jika normal tanpa revisi, kuantitas adalah jumlah aksi rutin pada hari itu.
+  const routineCountOnDate = lastRoutineLog
+    ? (lastRoutineLog.note?.includes("Revisi") || lastRoutineLog.quantity !== undefined
+        ? Number(lastRoutineLog.quantity)
+        : routineLogsOnDate.length)
+    : 0;
+
+  const isRoutineDoneOnDate = routineCountOnDate > 0;
+
   const lastRoutineTimeStr = lastRoutineLog
     ? new Date(lastRoutineLog.performedAt).toLocaleTimeString("id-ID", {
         hour: "2-digit",
@@ -144,13 +154,20 @@ export function ModularWorkerView({
       })
     : null;
 
-  // Hitung berapa kali panen hari ini, total panen
-  const harvestLogsToday = (todayLogs || []).filter((l) => l.activityType === "HARVEST");
-  const harvestCountToday = harvestLogsToday.length;
-  const totalHarvestQtyToday = harvestLogsToday.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+  // Evaluasi Harvest pada target date
+  const harvestLogsOnDate = (selectedDateLogs || [])
+    .filter((l) => l.activityType === "HARVEST")
+    .sort((a, b) => b.performedAt.localeCompare(a.performedAt));
 
-  // Logika Timestamp & Threshold Alert Panen
-  const isHarvestDoneToday = harvestCountToday > 0;
+  const lastHarvestLog = harvestLogsOnDate[0] || null;
+  const isHarvestRevisionActive = lastHarvestLog && lastHarvestLog.note?.includes("Revisi");
+  
+  // Total kuantitas panen pada tanggal ini
+  const totalHarvestQtyOnDate = isHarvestRevisionActive
+    ? Number(lastHarvestLog?.quantity || 0)
+    : harvestLogsOnDate.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+
+  const isHarvestDoneOnDate = totalHarvestQtyOnDate > 0;
 
   // Threshold alert dari modul (default: RECURRING = 2 hari, ONCE = 0 alias non-aktif)
   const alertThresholdDays =
@@ -160,25 +177,24 @@ export function ModularWorkerView({
       ? 2
       : 0;
 
-  let harvestTimestampDisplay = "Belum pernah ada panen";
+  let harvestTimestampDisplay = "Belum pernah panen";
   let daysSinceLastHarvest: number | null = null;
   let isOverdueHarvest = false;
 
   if (lastEverHarvestLog) {
     const harvestDate = new Date(lastEverHarvestLog.performedAt);
-    const harvestDateStr = lastEverHarvestLog.performedAt.split("T")[0];
+    const harvestDateStr = lastEverHarvestLog.targetDate || lastEverHarvestLog.performedAt.split("T")[0];
 
+    const todayStr = getTodayDateStr();
     const todayDateObj = new Date(todayStr);
     const prevDateObj = new Date(harvestDateStr);
     const diffTime = todayDateObj.getTime() - prevDateObj.getTime();
     daysSinceLastHarvest = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
 
     if (harvestDateStr === todayStr) {
-      // Masih hari yang sama: cukup jamnya
       const timeStr = harvestDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
       harvestTimestampDisplay = `Hari ini • ${timeStr} WIB`;
     } else {
-      // Beda hari: tampilkan tanggal lengkap + peringatan hari
       const formattedDate = harvestDate.toLocaleDateString("id-ID", {
         day: "numeric",
         month: "short",
@@ -186,18 +202,11 @@ export function ModularWorkerView({
       });
       harvestTimestampDisplay = `${formattedDate} (${daysSinceLastHarvest} hari lalu)`;
 
-      // Alert aktif hanya jika threshold > 0 dan selisih hari melebihi threshold
       if (alertThresholdDays > 0 && daysSinceLastHarvest >= alertThresholdDays) {
         isOverdueHarvest = true;
       }
     }
-  } else {
-    // Belum pernah panen sama sekali: murni informasi, BUKAN alert berbahaya
-    harvestTimestampDisplay = "Belum pernah panen";
-    isOverdueHarvest = false;
   }
-
-  const isRoutineDoneToday = routineCountToday > 0;
 
   const handlePrev = () => {
     if (activeIndex > 0) {
@@ -211,7 +220,7 @@ export function ModularWorkerView({
     }
   };
 
-  // 1. Kelola Perubahan Populasi (Tambah / Kurang / Atur Ulang)
+  // 1. Kelola Perubahan Populasi
   const handleUpdatePopulation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentContainer) return;
@@ -233,23 +242,21 @@ export function ModularWorkerView({
 
     const defaultReason =
       popChangeType === "ADD"
-        ? `Tambah populasi bibit/ayam baru (${diff > 0 ? `+${diff}` : diff})`
+        ? `Tambah bibit/populasi baru (${diff > 0 ? `+${diff}` : diff})`
         : popChangeType === "SUBTRACT"
-        ? `Pengurangan / pemotongan / mutasi (${diff})`
-        : `Penyesuaian stok populasi (${oldPop} -> ${newPop})`;
+        ? `Pengurangan / mutasi / potong (${diff})`
+        : `Revisi jumlah populasi (${oldPop} -> ${newPop})`;
 
     const finalReason = popChangeReason.trim() || defaultReason;
 
     if (currentSubject) {
-      // Update subject yang ada
       await localDb.subjects.update(currentSubject.id, {
         populationCount: newPop,
-        isActive: true, // tetap aktif meskipun 0, agar bisa ditambah lagi nanti
+        isActive: true,
         updatedAt: new Date().toISOString(),
         syncedToCloud: false,
       });
     } else {
-      // Jika wadah belum memiliki subject, buat subject baru
       await localDb.subjects.put({
         id: `subj-${currentContainer.code}-${Date.now()}`,
         moduleId: currentContainer.moduleId,
@@ -262,14 +269,12 @@ export function ModularWorkerView({
       });
     }
 
-    // Pastikan status wadah ACTIVE
     await localDb.containers.update(currentContainer.id, {
       status: "ACTIVE",
       updatedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
 
-    // Catat ke Activity Log dengan kuantitas nilai tetap (Fixed Absolute Value)
     const newLogId = `log-pop-${Date.now()}`;
     await localDb.activityLogs.put({
       id: newLogId,
@@ -277,40 +282,29 @@ export function ModularWorkerView({
       containerId: currentContainer.id,
       subjectId: currentSubject?.id,
       activityType: "POPULATION_CHANGE",
-      quantity: newPop, // Selalu simpan target nilai tetap
+      quantity: newPop,
       unit: "Unit",
-      note: `${finalReason} di ${currentContainer.name}. Populasi kini: ${newPop}`,
+      note: `${finalReason} di ${currentContainer.name} (Tanggal ${selectedDate}). Populasi: ${newPop}`,
+      targetDate: selectedDate,
       performedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
 
-    toast.success(`📊 Populasi ${currentContainer.name} diubah menjadi ${newPop}!`, {
-      action: {
-        label: "Batalkan (Undo)",
-        onClick: async () => {
-          const res = await undoActivityLog(newLogId);
-          if (res.success) {
-            toast.info(res.message);
-            runFarmSync().catch(() => {});
-          } else {
-            toast.error(res.message);
-          }
-        },
-      },
-      duration: 6000,
-    });
+    toast.success(`📊 Populasi ${currentContainer.name} diubah menjadi ${newPop}!`);
     setShowPopulationModal(false);
     setPopChangeAmount(1);
     setPopChangeReason("");
     runFarmSync().catch(() => {});
   };
 
-  // 2. Eksekusi Tombol Rawat Harian
-  const handleRoutineAction = async () => {
+  // 2. Aksi Cepat Tambah Rawat / Pakan (+1)
+  const handleQuickAddRoutine = async () => {
     if (!currentContainer || !currentSubject) return;
 
+    const newCount = routineCountOnDate + 1;
+
     await localDb.subjects.update(currentSubject.id, {
-      lastRoutineDate: todayStr,
+      lastRoutineDate: selectedDate,
       updatedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
@@ -322,44 +316,69 @@ export function ModularWorkerView({
       containerId: currentContainer.id,
       subjectId: currentSubject.id,
       activityType: "ROUTINE",
-      quantity: 1,
-      note: `${currentModule?.config.routineActionLabel || "Perawatan"} pada ${currentContainer.name}`,
+      quantity: newCount,
+      unit: "Kali",
+      note: `${currentModule?.config.routineActionLabel || "Perawatan"} ke-${newCount} pada ${currentContainer.name}`,
+      targetDate: selectedDate,
       performedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
 
-    toast.success(`✅ ${currentModule?.config.routineActionLabel || "Aksi"} selesai!`, {
-      action: {
-        label: "Batalkan (Undo)",
-        onClick: async () => {
-          const res = await undoActivityLog(newLogId);
-          if (res.success) {
-            toast.info(res.message);
-            runFarmSync().catch(() => {});
-          } else {
-            toast.error(res.message);
-          }
-        },
-      },
-      duration: 6000,
-    });
+    toast.success(`✅ ${currentModule?.config.routineActionLabel || "Aksi"} selesai (${newCount}x)!`);
     runFarmSync().catch(() => {});
   };
 
-  // 3. Eksekusi Tombol Panen Hasil
-  const handleHarvestAction = async (e: React.FormEvent) => {
+  // 3. Revisi Nilai Rutin / Pakan (Langsung set ke angka tertentu misal 0, 1, 2, dll)
+  const handleSaveRoutineRevision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentContainer || !currentSubject) return;
+
+    const targetCount = Math.max(0, routineCountInput);
+
+    await localDb.subjects.update(currentSubject.id, {
+      lastRoutineDate: targetCount > 0 ? selectedDate : currentSubject.lastRoutineDate,
+      updatedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    const newLogId = `log-rtn-${Date.now()}`;
+    await localDb.activityLogs.put({
+      id: newLogId,
+      moduleId: currentContainer.moduleId,
+      containerId: currentContainer.id,
+      subjectId: currentSubject.id,
+      activityType: "ROUTINE",
+      quantity: targetCount,
+      unit: "Kali",
+      note: `Revisi pemberian ${currentModule?.config.routineActionLabel || "pakan"} tanggal ${selectedDate} menjadi ${targetCount}x`,
+      targetDate: selectedDate,
+      performedAt: new Date().toISOString(),
+      syncedToCloud: false,
+    });
+
+    toast.success(`👌 Frekuensi ${currentModule?.config.routineActionLabel || "pakan"} direvisi menjadi ${targetCount}x.`);
+    setShowRoutineModal(false);
+    runFarmSync().catch(() => {});
+  };
+
+  // 4. Eksekusi Tombol Panen / Revisi Panen
+  const handleSaveHarvest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentContainer || !currentSubject) return;
 
     const harvestType = currentModule?.config.harvestType || "RECURRING";
+    const qtyValue = Math.max(0, Number(harvestInput) || 0);
 
     if (harvestType === "RECURRING") {
-      // Panen berkala
       await localDb.subjects.update(currentSubject.id, {
-        lastHarvestDate: todayStr,
+        lastHarvestDate: qtyValue > 0 ? selectedDate : currentSubject.lastHarvestDate,
         updatedAt: new Date().toISOString(),
         syncedToCloud: false,
       });
+
+      const noteText = isHarvestRevision
+        ? `Revisi hasil panen tanggal ${selectedDate} menjadi ${qtyValue} ${currentModule?.config.harvestUnitLabel || ""}`
+        : `Panen ${currentContainer.name}: ${qtyValue} ${currentModule?.config.harvestUnitLabel || ""}`;
 
       const newLogId = `log-hrv-${Date.now()}`;
       await localDb.activityLogs.put({
@@ -368,28 +387,19 @@ export function ModularWorkerView({
         containerId: currentContainer.id,
         subjectId: currentSubject.id,
         activityType: "HARVEST",
-        quantity: Number(harvestInput) || 1,
+        quantity: qtyValue,
         unit: currentModule?.config.harvestUnitLabel || "Unit",
-        note: `Panen ${currentContainer.name}: ${harvestInput} ${currentModule?.config.harvestUnitLabel || ""}`,
+        note: noteText,
+        targetDate: selectedDate,
         performedAt: new Date().toISOString(),
         syncedToCloud: false,
       });
 
-      toast.success(`🎉 Berhasil mencatat panen: ${harvestInput} ${currentModule?.config.harvestUnitLabel || ""}!`, {
-        action: {
-          label: "Batalkan (Undo)",
-          onClick: async () => {
-            const res = await undoActivityLog(newLogId);
-            if (res.success) {
-              toast.info(res.message);
-              runFarmSync().catch(() => {});
-            } else {
-              toast.error(res.message);
-            }
-          },
-        },
-        duration: 6000,
-      });
+      toast.success(
+        qtyValue > 0
+          ? `🎉 Berhasil mencatat panen: ${qtyValue} ${currentModule?.config.harvestUnitLabel || ""}!`
+          : `👌 Hasil panen tanggal ${selectedDate} telah diatur menjadi 0.`
+      );
     } else {
       // Panen sekali habis (Kosongkan wadah)
       await localDb.subjects.update(currentSubject.id, {
@@ -412,33 +422,20 @@ export function ModularWorkerView({
         subjectId: currentSubject.id,
         activityType: "TERMINATE",
         quantity: currentSubject.populationCount,
-        note: `Panen total & kosongkan wadah ${currentContainer.name}`,
+        note: `Panen total & kosongkan wadah ${currentContainer.name} (Tanggal ${selectedDate})`,
+        targetDate: selectedDate,
         performedAt: new Date().toISOString(),
         syncedToCloud: false,
       });
 
-      toast.success(`🎉 Panen total selesai. Wadah ${currentContainer.name} sekarang kosong.`, {
-        action: {
-          label: "Batalkan (Undo)",
-          onClick: async () => {
-            const res = await undoActivityLog(newLogId);
-            if (res.success) {
-              toast.info(res.message);
-              runFarmSync().catch(() => {});
-            } else {
-              toast.error(res.message);
-            }
-          },
-        },
-        duration: 6000,
-      });
+      toast.success(`🎉 Panen total selesai. Wadah ${currentContainer.name} sekarang kosong.`);
     }
 
     setShowHarvestModal(false);
     runFarmSync().catch(() => {});
   };
 
-  // 3. Lapor Kerusakan / Kendala
+  // 5. Lapor Kerusakan / Kendala
   const handleReportMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentContainer) return;
@@ -457,6 +454,7 @@ export function ModularWorkerView({
       activityType: "MAINTENANCE",
       quantity: 1,
       note: `Lapor kendala: ${maintenanceNote.trim()}`,
+      targetDate: selectedDate,
       performedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
@@ -481,6 +479,16 @@ export function ModularWorkerView({
 
   return (
     <div className="w-full space-y-4 pb-20">
+      {/* Peringatan jika sedang melihat / mengedit data masa lalu */}
+      {!isToday && (
+        <div className="flex items-center justify-between gap-2 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-950 font-bold shadow-2xs">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-amber-700 shrink-0" />
+            <span>Mode Tanggal Lampau: Mengedit catatan untuk <strong>{selectedDate}</strong></span>
+          </div>
+        </div>
+      )}
+
       {/* 1. CAROUSEL NAVIGASI LOKASI / WADAH */}
       <div className="flex items-center justify-between gap-2 rounded-3xl border-2 border-slate-300 bg-white p-3 shadow-xs">
         <button
@@ -559,113 +567,117 @@ export function ModularWorkerView({
         </div>
       </div>
 
-      {/* 3 & 4. DUA TOMBOL UTAMA LAPANGAN (STRETCH / DUA KOLOM DI TABLET/DESKTOP) */}
+      {/* 3 & 4. DUA TOMBOL UTAMA LAPANGAN DENGAN OPSI REVISI CEPAT */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* TOMBOL #1: PERAWATAN HARIAN */}
-        <button
-          onClick={handleRoutineAction}
-          className={`flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
-            isRoutineDoneToday
-              ? "border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
-              : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-xl font-black">
-            {isRoutineDoneToday ? (
-              <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-            ) : (
-              <Utensils className="h-7 w-7" />
-            )}
-            <span>{currentModule?.config.routineActionLabel || "Perawatan Harian"}</span>
-          </div>
-          <div className="text-xs font-bold opacity-90">
-            {isRoutineDoneToday ? (
-              <span className="inline-flex items-center gap-1.5 font-black text-emerald-900">
-                <span>Sudah {routineCountToday}x hari ini</span>
-                <span>•</span>
-                <span>Terakhir: {lastRoutineTimeStr} WIB</span>
-                <span className="text-[10px] font-normal opacity-75">(Tap untuk tambah lagi)</span>
-              </span>
-            ) : (
-              <span>Belum dilakukan hari ini — Tap tombol ini</span>
-            )}
-          </div>
-        </button>
-
-        {/* TOMBOL #2: PANEN / HASIL (DENGAN HIGHLIGHT KETIKA SUDAH LAMA BELUM PANEN) */}
-        <button
-          onClick={() => setShowHarvestModal(true)}
-          className={`relative flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md overflow-hidden ${
-            isHarvestDoneToday
-              ? "border-amber-400 bg-amber-300 text-slate-950 hover:bg-amber-200"
-              : isOverdueHarvest
-              ? "border-rose-500 bg-amber-400 text-slate-950 hover:bg-amber-300 ring-4 ring-rose-400/50 animate-pulse"
-              : "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300"
-          }`}
-        >
-          {/* Badge Overdue Kecil di Pojok Kanan Atas Tombol */}
-          {isOverdueHarvest && daysSinceLastHarvest !== null && (
-            <span className="absolute top-2.5 right-3 rounded-full bg-rose-600 px-2.5 py-0.5 text-[10px] font-black uppercase text-white shadow-xs">
-              ⚠️ {daysSinceLastHarvest} Hari Belum Panen
-            </span>
-          )}
-
-          <div className="flex items-center gap-2 text-xl font-black">
-            <Scissors className="h-7 w-7" />
-            <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
-          </div>
-
-          <div className="text-xs font-bold text-slate-900 opacity-95">
-            {isHarvestDoneToday ? (
-              <span className="inline-flex items-center gap-1.5 font-black">
-                <span>Sudah {harvestCountToday}x</span>
-                {currentModule?.config.harvestType === "RECURRING" && (
-                  <span>(Total: {totalHarvestQtyToday} {currentModule?.config.harvestUnitLabel || "Unit"})</span>
-                )}
-                <span>•</span>
-                <span>Terakhir: {harvestTimestampDisplay}</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <span>{currentModule?.config.harvestType === "RECURRING" ? "Belum panen hari ini" : "Panen total"}</span>
-                <span>•</span>
-                <span className={`font-black ${isOverdueHarvest ? "text-rose-900 underline" : ""}`}>
-                  Terakhir: {harvestTimestampDisplay}
+        {/* TOMBOL #1: PERAWATAN HARIAN DENGAN REVISI */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={handleQuickAddRoutine}
+            className={`flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md ${
+              isRoutineDoneOnDate
+                ? "border-emerald-600 bg-emerald-50 text-emerald-950 hover:bg-emerald-100"
+                : "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+            }`}
+          >
+            <div className="flex items-center gap-2 text-xl font-black">
+              {isRoutineDoneOnDate ? (
+                <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+              ) : (
+                <Utensils className="h-7 w-7" />
+              )}
+              <span>{currentModule?.config.routineActionLabel || "Perawatan"}</span>
+            </div>
+            <div className="text-xs font-bold opacity-90">
+              {isRoutineDoneOnDate ? (
+                <span className="inline-flex items-center gap-1.5 font-black text-emerald-900">
+                  <span>Sudah {routineCountOnDate}x pada tanggal ini</span>
+                  {lastRoutineTimeStr && <span>• {lastRoutineTimeStr} WIB</span>}
+                  <span className="text-[10px] font-normal opacity-75">(Tap +1)</span>
                 </span>
+              ) : (
+                <span>Belum dilakukan — Tap untuk +1</span>
+              )}
+            </div>
+          </button>
+
+          {/* Tombol Revisi Pakan */}
+          <button
+            type="button"
+            onClick={() => {
+              setRoutineCountInput(routineCountOnDate);
+              setShowRoutineModal(true);
+            }}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-slate-500" />
+            <span>Revisi Jumlah Kasih Pakan ({routineCountOnDate}x)</span>
+          </button>
+        </div>
+
+        {/* TOMBOL #2: PANEN / HASIL DENGAN OPSI REVISI */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => {
+              setHarvestInput(1);
+              setIsHarvestRevision(false);
+              setShowHarvestModal(true);
+            }}
+            className={`relative flex min-h-[110px] w-full flex-col items-center justify-center gap-1.5 rounded-3xl border-4 p-5 text-center transition active:scale-98 shadow-md overflow-hidden ${
+              isHarvestDoneOnDate
+                ? "border-amber-400 bg-amber-300 text-slate-950 hover:bg-amber-200"
+                : isOverdueHarvest
+                ? "border-rose-500 bg-amber-400 text-slate-950 hover:bg-amber-300 ring-4 ring-rose-400/50 animate-pulse"
+                : "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300"
+            }`}
+          >
+            {isOverdueHarvest && daysSinceLastHarvest !== null && (
+              <span className="absolute top-2.5 right-3 rounded-full bg-rose-600 px-2.5 py-0.5 text-[10px] font-black uppercase text-white shadow-xs">
+                ⚠️ {daysSinceLastHarvest} Hari Belum Panen
               </span>
             )}
-          </div>
-        </button>
+
+            <div className="flex items-center gap-2 text-xl font-black">
+              <Scissors className="h-7 w-7" />
+              <span>{currentModule?.config.harvestActionLabel || "Panen Hasil"}</span>
+            </div>
+
+            <div className="text-xs font-bold text-slate-900 opacity-95">
+              {isHarvestDoneOnDate ? (
+                <span className="inline-flex items-center gap-1.5 font-black">
+                  <span>Tercatat: {totalHarvestQtyOnDate} {currentModule?.config.harvestUnitLabel || "Unit"}</span>
+                  <span>•</span>
+                  <span>{harvestTimestampDisplay}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <span>{currentModule?.config.harvestType === "RECURRING" ? "Belum panen pada tanggal ini" : "Panen total"}</span>
+                  <span>•</span>
+                  <span className={`font-black ${isOverdueHarvest ? "text-rose-900 underline" : ""}`}>
+                    {harvestTimestampDisplay}
+                  </span>
+                </span>
+              )}
+            </div>
+          </button>
+
+          {/* Tombol Revisi Panen */}
+          <button
+            type="button"
+            onClick={() => {
+              setHarvestInput(totalHarvestQtyOnDate);
+              setIsHarvestRevision(true);
+              setShowHarvestModal(true);
+            }}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-slate-500" />
+            <span>Revisi Hasil Panen ({totalHarvestQtyOnDate} {currentModule?.config.harvestUnitLabel || ""})</span>
+          </button>
+        </div>
       </div>
 
-      {/* 5. LAPOR KENDALA / RUSAK & QUICK UNDO DI LAPANGAN */}
-      <div className="space-y-2 pt-2">
-        {/* Tombol Quick Undo di Lapangan jika ada aksi sebelumnya */}
-        {lastActionForContainer && (
-          <div className="flex items-center justify-between rounded-2xl border border-dashed border-purple-300 bg-purple-50/70 p-3 text-xs">
-            <div className="truncate pr-2">
-              <span className="font-bold text-slate-500">Aksi terakhir: </span>
-              <span className="font-black text-slate-800">{lastActionForContainer.note || lastActionForContainer.activityType}</span>
-            </div>
-            <button
-              onClick={async () => {
-                const res = await undoActivityLog(lastActionForContainer.id);
-                if (res.success) {
-                  toast.success(res.message);
-                  runFarmSync().catch(() => {});
-                } else {
-                  toast.error(res.message);
-                }
-              }}
-              className="flex shrink-0 items-center gap-1.5 rounded-xl border border-purple-300 bg-white px-3 py-1.5 text-xs font-black text-purple-800 shadow-2xs hover:bg-purple-100 active:scale-95 transition"
-              title="Batalkan aksi terakhir ini langsung dari lapangan"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              <span>Batalkan (Undo)</span>
-            </button>
-          </div>
-        )}
-
+      {/* 5. LAPOR KENDALA / RUSAK */}
+      <div className="pt-2">
         <button
           onClick={() => setShowMaintenanceModal(true)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 py-3 text-xs font-black text-slate-600 hover:bg-slate-100 active:scale-95 transition"
@@ -675,7 +687,82 @@ export function ModularWorkerView({
         </button>
       </div>
 
-      {/* MODAL PANEN */}
+      {/* MODAL REVISI PAKAN / RAWAT */}
+      {showRoutineModal && (
+        <div
+          onClick={() => setShowRoutineModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSaveRoutineRevision}
+            className="w-full max-w-sm rounded-3xl border-2 border-emerald-600 bg-white p-6 shadow-2xl space-y-4"
+          >
+            <div className="text-center">
+              <h3 className="text-xl font-black text-slate-900">
+                Revisi {currentModule?.config.routineActionLabel || "Pemberian Pakan"}
+              </h3>
+              <p className="text-xs font-bold text-slate-500 mt-1">
+                Wadah: {currentContainer.name} • Tanggal: {selectedDate}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-emerald-50 p-4 text-center border border-emerald-200">
+              <label className="block text-xs font-black text-slate-700">
+                Berapa kali sudah diberi pakan pada tanggal ini?
+              </label>
+              <div className="mt-3 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRoutineCountInput((v) => Math.max(0, v - 1))}
+                  className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300 active:scale-95"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={routineCountInput}
+                  onChange={(e) => setRoutineCountInput(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-24 rounded-xl border-2 border-emerald-500 bg-white py-2 text-center text-3xl font-black text-slate-900 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRoutineCountInput((v) => v + 1)}
+                  className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300 active:scale-95"
+                >
+                  +
+                </button>
+              </div>
+
+              {routineCountInput === 0 && (
+                <p className="text-[11px] font-bold text-amber-700 mt-2">
+                  Mengatur ke 0 akan mereset status menjadi belum diberi pakan.
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowRoutineModal(false)}
+                className="flex-1 rounded-2xl border-2 border-slate-300 bg-slate-100 py-3 text-sm font-black text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 rounded-2xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700"
+              >
+                Simpan Revisi
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL PANEN & REVISI PANEN */}
       {showHarvestModal && (
         <div
           onClick={() => setShowHarvestModal(false)}
@@ -683,15 +770,15 @@ export function ModularWorkerView({
         >
           <form
             onClick={(e) => e.stopPropagation()}
-            onSubmit={handleHarvestAction}
+            onSubmit={handleSaveHarvest}
             className="w-full max-w-sm rounded-3xl border-2 border-amber-500 bg-white p-6 shadow-2xl space-y-4"
           >
             <div className="text-center">
               <h3 className="text-xl font-black text-slate-900">
-                {currentModule?.config.harvestActionLabel}
+                {isHarvestRevision ? "Revisi Panen" : currentModule?.config.harvestActionLabel || "Catat Panen"}
               </h3>
               <p className="text-xs font-bold text-slate-500 mt-1">
-                Wadah: {currentContainer.name}
+                Wadah: {currentContainer.name} • Tanggal: {selectedDate}
               </p>
             </div>
 
@@ -703,14 +790,14 @@ export function ModularWorkerView({
                 <div className="mt-2 flex items-center justify-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setHarvestInput((v) => Math.max(1, v - 1))}
-                    className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300"
+                    onClick={() => setHarvestInput((v) => Math.max(0, Number((v - 1).toFixed(1))))}
+                    className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300 active:scale-95"
                   >
                     -
                   </button>
                   <input
                     type="number"
-                    min={0.1}
+                    min={0}
                     step={0.1}
                     required
                     value={harvestInput}
@@ -719,12 +806,17 @@ export function ModularWorkerView({
                   />
                   <button
                     type="button"
-                    onClick={() => setHarvestInput((v) => v + 1)}
-                    className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300"
+                    onClick={() => setHarvestInput((v) => Number((v + 1).toFixed(1)))}
+                    className="h-12 w-12 rounded-xl bg-white text-xl font-black border border-slate-300 active:scale-95"
                   >
                     +
                   </button>
                 </div>
+                {isHarvestRevision && harvestInput === 0 && (
+                  <p className="text-[11px] font-bold text-amber-800 mt-2">
+                    Mengatur panen ke 0 akan membatalkan hasil panen tanggal ini.
+                  </p>
+                )}
               </div>
             )}
 
@@ -740,7 +832,7 @@ export function ModularWorkerView({
                 type="submit"
                 className="flex-1 rounded-2xl bg-amber-500 py-3 text-sm font-black text-slate-950 hover:bg-amber-400"
               >
-                Simpan Panen
+                {isHarvestRevision ? "Simpan Revisi" : "Simpan Panen"}
               </button>
             </div>
           </form>
@@ -987,7 +1079,7 @@ export function ModularWorkerView({
                   <div className="flex items-center gap-3 text-[11px] font-bold mt-0.5">
                     <span className="flex items-center gap-1 text-emerald-800">
                       <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />
-                      Sudah Dirawat Hari Ini
+                      Sudah Dirawat ({selectedDate})
                     </span>
                     <span className="flex items-center gap-1 text-amber-900">
                       <span className="h-2.5 w-2.5 rounded-full bg-amber-400 inline-block" />
@@ -1007,9 +1099,9 @@ export function ModularWorkerView({
             {/* Grid Kartu Wadah */}
             <div className="flex-1 overflow-y-auto py-4 pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {displayContainers.map((item, idx) => {
+                {displayContainers.map((item) => {
                   const isCurrent = item.code === currentContainer.code;
-                  const isFedToday = fedContainerIdsToday.has(item.id);
+                  const isFedToday = fedContainerIdsOnDate.has(item.id);
                   const itemModule = modules.find((m) => m.id === item.moduleId);
                   const itemSubject = subjects.find(
                     (s) => s.containerId === item.id && s.isActive

@@ -96,6 +96,7 @@ export async function undoActivityLog(logId: string): Promise<{ success: boolean
     }
 
     // 2. Catat event UNDO baru ke activity log (Never Delete, Pure Append)
+    const nowIso = new Date().toISOString();
     const undoLogId = `log-undo-${Date.now()}`;
     await localDb.activityLogs.put({
       id: undoLogId,
@@ -106,7 +107,8 @@ export async function undoActivityLog(logId: string): Promise<{ success: boolean
       quantity: log.quantity,
       unit: log.unit,
       note: `↩️ Batalkan aksi: ${log.note || activityType}`,
-      performedAt: new Date().toISOString(),
+      targetDate: log.targetDate || nowIso.split("T")[0],
+      performedAt: nowIso,
       syncedToCloud: false,
     });
 

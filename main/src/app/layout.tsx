@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import { DateProvider } from "@/context/DateContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,9 +29,11 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="min-h-screen bg-slate-100 text-slate-900 antialiased">
-        {children}
-        <PwaInstallPrompt />
-        <Toaster />
+        <DateProvider>
+          {children}
+          <PwaInstallPrompt />
+          <Toaster />
+        </DateProvider>
       </body>
     </html>
   );

@@ -226,6 +226,11 @@ export default function RiwayatPage() {
                       <span className="text-xs font-bold text-slate-400">
                         {dateStr} • {timeStr}
                       </span>
+                      {log.targetDate && log.targetDate !== log.performedAt.split("T")[0] && (
+                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-900">
+                          Target: {log.targetDate}
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm font-black text-slate-900 mt-1">
                       {log.note || "Aktivitas lapangan"}

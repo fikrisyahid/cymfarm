@@ -20,10 +20,13 @@ import {
   Box,
   Camera,
   Home,
+  Calendar,
+  LineChart,
 } from "lucide-react";
-import { localDb } from "@/lib/offline-db";
+import { localDb, getTodayDateStr } from "@/lib/offline-db";
 import { useAuthSession } from "@/lib/use-session";
 import { useFarmSync } from "@/hooks/useFarmSync";
+import { useOperasionalDate } from "@/context/DateContext";
 import { QrScannerModal } from "./QrScannerModal";
 import { toast } from "sonner";
 
@@ -44,6 +47,7 @@ export function AppShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const { isSyncing, triggerSync } = useFarmSync();
+  const { selectedDate, setSelectedDate, isToday, goToToday } = useOperasionalDate();
 
   const containers = useLiveQuery(() => localDb.containers.toArray(), [], []);
 
@@ -94,36 +98,53 @@ export function AppShell({
           <Menu className="h-6 w-6 stroke-[2.5]" />
         </button>
 
-        <div className="text-center min-w-0">
-          <div className="text-base font-black leading-tight text-slate-900 truncate">
-            {pathname.startsWith("/lapangan")
-              ? activeContainerCode ? `Area: ${activeContainerCode}` : "Halaman Lapangan"
-              : pathname.startsWith("/riwayat")
-              ? "Catatan & Riwayat"
-              : "Admin Studio"}
-          </div>
-          <div className="text-[11px] font-bold text-slate-500">
-            CymFarm Keluarga
-          </div>
+        {/* Date Picker di Tengah Header */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <label className="relative flex items-center gap-1.5 rounded-2xl border-2 border-slate-300 bg-slate-50 px-3 py-1.5 cursor-pointer hover:border-emerald-600 hover:bg-emerald-50/50 transition active:scale-98">
+            <Calendar className="h-4 w-4 text-emerald-700 shrink-0" />
+            <span className="text-xs font-black text-slate-900 truncate">
+              {new Date(selectedDate).toLocaleDateString("id-ID", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+            {isToday ? (
+              <span className="rounded-md bg-emerald-700 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+                Hari Ini
+              </span>
+            ) : (
+              <span className="rounded-md bg-amber-500 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+                Masa Lalu
+              </span>
+            )}
+            <input
+              type="date"
+              value={selectedDate}
+              max={getTodayDateStr()}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(e.target.value);
+                }
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            />
+          </label>
+
+          {!isToday && (
+            <button
+              onClick={goToToday}
+              className="rounded-xl border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-800 hover:bg-emerald-100 active:scale-95 transition"
+              title="Kembali ke Hari Ini"
+            >
+              Hari Ini
+            </button>
+          )}
         </div>
 
-        {/* Right side actions: Studio shortcut (if ADMIN) & Sync Button */}
+        {/* Right side action: Sync Button */}
         <div className="flex items-center gap-2">
-          {session?.role === "ADMIN" && (
-            <Link
-              href="/admin"
-              className={`flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition active:scale-95 ${
-                pathname.startsWith("/admin")
-                  ? "border-emerald-700 bg-emerald-50 text-emerald-800 font-black shadow-xs"
-                  : "border-slate-200 text-slate-700 hover:bg-slate-100"
-              }`}
-              title="Admin Studio"
-              aria-label="Admin Studio"
-            >
-              <Settings className="h-5 w-5" />
-            </Link>
-          )}
-
           <button
             onClick={() => triggerSync()}
             disabled={isSyncing}
@@ -142,9 +163,9 @@ export function AppShell({
       {/* 2. MAIN CONTENT (STRETCH FOR TABLET & DESKTOP) */}
       <main className="p-4 sm:p-6 lg:p-8 pb-24 w-full max-w-7xl mx-auto">{children}</main>
 
-      {/* 3. BOTTOM BAR DENGAN SCAN QR CENTER FLOATING (SIMETRIS PRESISI) */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 backdrop-blur shadow-lg items-center px-4">
-        {/* Left Side: Lapangan */}
+      {/* 3. BOTTOM BAR 5-ITEM DENGAN SCAN QR CENTER FLOATING (SIMETRIS PRESISI 2-1-2) */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t-2 border-slate-200 bg-white/95 backdrop-blur shadow-lg items-center px-2">
+        {/* Item 1: Lapangan */}
         <div className="flex-1 flex justify-center">
           <Link
             href="/lapangan"
@@ -159,8 +180,23 @@ export function AppShell({
           </Link>
         </div>
 
-        {/* Center Floating Action Button (FAB) Scan QR */}
-        <div className="relative -top-5 flex flex-col items-center shrink-0 px-4">
+        {/* Item 2: Analisa / Grafik Tren */}
+        <div className="flex-1 flex justify-center">
+          <Link
+            href="/analisa"
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              pathname.startsWith("/analisa")
+                ? "text-emerald-700 font-black"
+                : "text-slate-500 font-bold hover:text-slate-800"
+            }`}
+          >
+            <LineChart className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5">Analisa</span>
+          </Link>
+        </div>
+
+        {/* Item 3 (Center): Floating Action Button (FAB) Scan QR */}
+        <div className="relative -top-5 flex flex-col items-center shrink-0 px-2">
           <button
             onClick={() => setScannerOpen(true)}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-xl hover:bg-emerald-800 active:scale-95 transition border-4 border-white"
@@ -174,7 +210,7 @@ export function AppShell({
           </span>
         </div>
 
-        {/* Right Side: Riwayat */}
+        {/* Item 4: Riwayat */}
         <div className="flex-1 flex justify-center">
           <Link
             href="/riwayat"
@@ -186,6 +222,21 @@ export function AppShell({
           >
             <BarChart3 className="h-5 w-5" />
             <span className="text-[10px] mt-0.5">Riwayat</span>
+          </Link>
+        </div>
+
+        {/* Item 5: Setelan */}
+        <div className="flex-1 flex justify-center">
+          <Link
+            href="/pengaturan"
+            className={`flex flex-col items-center justify-center py-1 transition ${
+              pathname.startsWith("/pengaturan")
+                ? "text-emerald-700 font-black"
+                : "text-slate-500 font-bold hover:text-slate-800"
+            }`}
+          >
+            <Settings className="h-5 w-5" />
+            <span className="text-[10px] mt-0.5">Setelan</span>
           </Link>
         </div>
       </nav>
