@@ -1,90 +1,118 @@
-# CymFarm — System Architecture (`ARCHITECTURE.md`)
+# Arsitektur Sistem & Alur Data CymFarm (`docs/ARCHITECTURE.md`)
 
-![Modular Farm Flow Builder & Architecture](./assets/modular_farm_diagram.jpg)
-
-## 1. Visi & Prinsip Desain Utama
-**CymFarm** adalah aplikasi manajemen peternakan & pertanian keluarga berbasis **Next.js PWA (Offline-First)** yang dirancang dengan prinsip **Lego Modular Architecture**:
-1. **Dynamic In-App Module Builder**: Jenis peternakan/pertanian baru (Ayam, Lele, Tanaman, Maggot, dll.) dapat dirakit langsung dari dalam aplikasi menggunakan 7 *Lego Block Primitives* di atas kanvas visual (`@xyflow/react`) tanpa perlu koding ulang dari awal.
-2. **Pemisahan Ketat antara *Blueprint Flow*, *Container Fisik*, dan *Subject Penghuni***:
-   - Mengubah tata letak kandang (upgrade slot, tambah kolam, atau menonaktifkan kandang bocor/maintenance) **tidak akan pernah merusak histori lama** dan tidak mengharuskan pembuatan modul/flow baru.
-3. **2 Wajah Antarmuka (Dual-Mode UX)**:
-   - **Studio Mode (Admin)**: Tempat merakit modul/flow, mengatur hierarki kandang/kolam, mencetak QR Code, mencatat pembelian pakan, dan melihat analitik (rekomendasi potong ayam afkir & estimasi habis pakan).
-   - **Worker Mode (Lapangan / QR Scan)**: Antarmuka *zero-text / big-button* untuk keluarga atau pekerja kandang. Cukup scan QR Set Kandang/Kolam, klik tombol kasih makan (otomatis melewati kandang kosong/maintenance), atau tap nomor kandang yang bertelur hari itu.
-4. **Offline-First PWA**: Seluruh aksi harian disimpan seketika ke **IndexedDB (`Dexie.js`)** di perangkat HP dan disinkronkan ke **Supabase PostgreSQL (`Drizzle ORM`)** saat koneksi tersedia.
+Dokumen ini menjelaskan arsitektur teknis, alur data *offline-first*, resolusi konflik, dan mekanisme sinkronisasi cloud pada aplikasi **CymFarm**.
 
 ---
 
-## 2. Struktur Monorepo / Root Wrapper
-Seluruh operasional development dikendalikan dari direktori root (`/`):
+## 1. Filosofi Desain: Local-First / Offline-First
+
+Di CymFarm, antarmuka pengguna (UI di Lapangan, Riwayat, maupun Admin) **100% membaca dan menulis langsung ke IndexedDB (Dexie.js)** di perangkat pengguna, **BUKAN** langsung memanggil API Supabase.
+
+```mermaid
+flowchart LR
+    User[Aksi Pengguna di HP] -->|Tulis Seketika 0ms| LocalDB[(IndexedDB Dexie.js)]
+    LocalDB -->|useLiveQuery Reaktif| UI[Update Layar Seketika]
+    LocalDB -.->|Koneksi Tersedia / Tap Sync| SyncEngine[Sync Engine Client]
+    SyncEngine <===>|POST /api/sync| Cloud[(Supabase PostgreSQL)]
+```
+
+### Keunggulan Arsitektur:
+1. **Zero Latency (0ms)**: Tidak ada loading spinner saat pekerja menekan tombol kasih pakan atau panen di lapangan.
+2. **Kekebalan Lapangan**: Bekerja 100% tanpa gangguan di area kandang atau kebun yang tidak memiliki sinyal internet.
+3. **PWA Standalone Shell**: Seluruh aset static (HTML, CSS, JS) disimpan di browser via Service Worker (`public/sw.js`).
+
+---
+
+## 2. Struktur Monorepo & Root Wrapper
+
+Semua operasional dikendalikan dari root repository menggunakan script orchestrator:
+
 ```text
 cymfarm/
-├── .env                  # Satu-satunya sumber konfigurasi environment
-├── .env.example          # Template environment
-├── package.json          # Root wrapper scripts (dev, add, remove, update, env:sync, db:*)
-├── ops/                  # Script operasional & CI/CD
-│   ├── sync-env.ts       # Otomatis menyinkronkan /.env ke /main/.env.local
-│   ├── pkg.ts            # Wrapper install/remove/update package ke /main dari root
+├── .env                  # Satu-satunya sumber konfigurasi environment (Supabase URL, Key, dll.)
+├── .env.example          # Template konfigurasi
+├── package.json          # Root wrapper scripts (dev, build, start, add, remove, db:*)
+├── ops/                  # Skrip otomatisasi & migrasi
+│   ├── sync-env.ts       # Menyinkronkan /.env ke /main/.env.local secara otomatis
+│   ├── pkg.ts            # Wrapper manajemen package di sub-direktori /main
 │   ├── migrate.ts        # Database migration orchestrator (pre-flight checks, extensions, Drizzle migrator)
 │   └── ci.sh             # Pipeline verifikasi CI/CD
-├── docs/                 # Dokumentasi proyek
+├── docs/                 # Dokumentasi sistem & use case
 │   ├── ARCHITECTURE.md   # Dokumen arsitektur ini
-│   ├── CONTRIBUTION.md   # Panduan kontribusi & operasional dari root
-│   └── assets/           # Diagram & aset dokumentasi
-└── main/                 # Aplikasi utama Next.js (App Router, Drizzle ORM, Dexie, React Flow)
+│   ├── USE_CASE.md       # Alur operasional & skenario lapangan
+│   └── CONTRIBUTION.md   # Panduan kontribusi & development commands
+└── main/                 # Aplikasi Next.js App Router (PWA, Dexie.js, Drizzle ORM)
+    ├── public/
+    │   ├── manifest.json # Web App Manifest PWA
+    │   ├── sw.js         # Service Worker offline cache
+    │   ├── icon.svg      # Master SVG icon
+    │   ├── icon-192.png  # PWA standard Android icon (192px)
+    │   └── icon-512.png  # PWA splash screen icon (512px)
+    └── src/
+        ├── app/          # Next.js App Router (/lapangan, /riwayat, /admin, /login, /api/sync)
+        ├── components/   # ModularWorkerView, AdminModularStudio, AppShell, QrScanner, etc.
+        ├── db/           # Drizzle ORM schema & client
+        └── lib/          # offline-db.ts, sync-engine.ts, activity-undo.ts
 ```
 
 ---
 
-## 3. Tujuh Blok Lego Standar (*7 Lego Block Primitives*)
-Setiap modul peternakan/tanaman dibangun dengan merangkai node dari 7 tipe blok primitif berikut:
+## 3. Skema Database Inti (PostgreSQL via Drizzle ORM)
 
-| Kode Blok | Nama Blok | Fungsi & Contoh Penggunaan |
-| :--- | :--- | :--- |
-| `INIT_POPULATE` | **1. Init / Populate** | Memasukkan penghuni baru ke wadah (Isi Ayam ke Slot Kandang, Tebar Bibit Lele ke Kolam). |
-| `DAILY_ROUTINE` | **2. Daily Routine** | Aksi rutin harian seperti Kasih Pakan / Siram. Otomatis melewati (*auto-skip*) slot yang berstatus `VACANT` atau `MAINTENANCE`. |
-| `RECURRING_YIELD` | **3. Recurring Yield** | Panen hasil berulang tanpa mengakhiri siklus hidup subjek (Panen Telur Ayam per kandang, Petik Cabai). |
-| `SORT_TRANSFER` | **4. Sort / Transfer** | Memindahkan atau memecah populasi antar wadah (Sortir ukuran Lele Kecil/Sedang/Besar atau pindah ke Ember Puasa). |
-| `TIMER_QUARANTINE` | **5. Timer / Quarantine** | Fase tunggu dengan hitung mundur otomatis (contoh: **Puasa Lele 3 Hari / 72 Jam** di ember sebelum siap potong). |
-| `AUTO_RULE` | **6. Auto-Rule Trigger** | Aturan evaluasi otomatis (contoh: Jika `RECURRING_YIELD` = 0 telur selama `X` hari berturut-turut -> beri status **Rekomendasi Potong/Afkir**). |
-| `TERMINATE_HARVEST` | **7. Terminate / Harvest** | Mengakhiri siklus subjek (Potong Ayam / Panen Lele) dan mengubah slot wadah kembali menjadi `VACANT`. |
+Skema database terletak di `main/src/db/schema.ts` dan terdiri dari tabel-tabel terstruktur:
 
----
-
-## 4. Desain Skema Database (Drizzle ORM + Supabase PostgreSQL)
-
-Skema database terletak di `main/src/db/schema.ts` dan terdiri dari 5 tabel inti:
-
-1. **`farm_modules` (Blueprint & Flow Definition)**
-   - Menyimpan definisi modul dinamis (`Ayam Petelur`, `Lele Konsumsi`, dll.), mode tracking (`INDIVIDUAL` vs `BATCH`), serta struktur graf React Flow (`nodes` dan `edges` dalam kolom `JSONB`).
-2. **`containers` (Hierarki Wadah Fisik Dinamis)**
-   - Menggunakan self-referencing `parentId` untuk memodelkan struktur fisik apa pun:
-     - `Kolam Lele 1` (`type: POND`)
-       - `Set Kandang 1A` (`type: CAGE_SET`, `parentId: Kolam 1`)
-         - `Kandang 1` s/d `Kandang 6` (`type: CAGE_SLOT`, `parentId: Set 1A`)
-     - `Ember Karantina / Puasa` (`type: QUARANTINE_BUCKET`)
-   - Memiliki kolom `status`: `'ACTIVE' | 'VACANT' | 'MAINTENANCE' | 'ARCHIVED'`.
-   - Jika kolam bocor atau kandang rusak, status diubah ke `'MAINTENANCE'` disertai alur evakuasi penghuni tanpa menghapus histori.
-3. **`subjects` (Penghuni Aktif / Historis: Individu Ayam atau Batch Lele)**
-   - Merepresentasikan `Ayam #01` (individu di dalam `CAGE_SLOT`) atau `Batch Lele Kolam 1` (komunal di dalam `POND` atau `QUARANTINE_BUCKET`).
-   - Menyimpan `currentNodeId` (sedang berada di tahap blok mana pada modul), `timerStartedAt` & `timerEndsAt` (untuk hitung mundur puasa lele 72 jam), serta `consecutiveZeroYieldDays` (untuk deteksi ayam afkir).
-4. **`activity_logs` (Log Historis Imutabel)**
-   - Mencatat setiap aksi (`FEED`, `EGG_HARVEST`, `SORT_TRANSFER`, `START_FASTING`, `MAINTENANCE_REPORT`, `HARVEST_CUT`).
-   - Menyimpan referensi ke `containerId` dan `subjectId` beserta `timestamp`, sehingga meskipun struktur kandang di-upgrade di masa depan, seluruh data historis tetap utuh.
-5. **`feed_purchases` (Log Pembelian Pakan & Estimasi Habis)**
-   - Mencatat tanggal pembelian pakan, berat dalam kilogram (misal `25 kg`), harga, dan catatan.
-   - Tidak memblokir aksi pemberian makan harian pekerja; digunakan untuk menghitung estimasi tanggal habis pakan berdasarkan jumlah ayam aktif dan rata-rata konsumsi historis.
-6. **`feed_categories` (Kategori Pakan Dinamis)**
-   - Menyimpan kategori pakan kustom (misal: Pelet 781, Dedak Bekatul, Maggot Segar, Jagung Giling) beserta emoji ikon.
-7. **`farm_module_categories` (Kategori Modul Dinamis)**
-   - Menyimpan kategori modul dinamis (Peternakan, Perikanan, Tanaman, Jamur, Lainnya/Umum) yang dapat ditambah mandiri oleh admin.
+1. **`farm_module_categories`**:
+   - Kategori modular dinamis (`LIVESTOCK`, `AQUACULTURE`, `PLANT`, `FUNGI`, dll.) lengkap dengan icon emoji yang dapat ditambah mandiri oleh admin.
+2. **`farm_modules`**:
+   - Blueprint sistem ternak modular. Menyimpan nama modul, kategori, mode tracking (`BATCH` vs `INDIVIDUAL`), serta konfigurasi modular (`ModularFarmConfig`):
+     - `routineActionLabel`: Label tombol perawatan harian (misal: "Kasih Pakan", "Semprot Air").
+     - `harvestType`: `'RECURRING'` (berkala seperti telur/jamur) atau `'ONCE'` (sekali panen habis seperti lele/sayur).
+     - `harvestActionLabel` & `harvestUnitLabel`: Label tombol panen dan satuan (butir/kg/ikat).
+     - `harvestAlertDays`: Ambang batas hari keterlambatan panen sebelum memicu visual highlight peringatan (isi `0` untuk menonaktifkan alert pada komoditas siklus lama seperti kambing/sapi).
+3. **`containers`**:
+   - Wadah fisik nyata di farm (kandang baterai, petak kolam, rak kumbung jamur, dll.).
+   - Menyimpan `code` (slug unik untuk QR code), `capacity`, dan `status` (`'ACTIVE' | 'VACANT' | 'MAINTENANCE'`).
+4. **`subjects`**:
+   - Subjek populasi penghuni wadah. Menyimpan `populationCount`, `isActive`, `lastRoutineDate`, dan `lastHarvestDate`.
+5. **`activity_logs`**:
+   - Buku jurnal aktivitas historis lapangan (`ROUTINE`, `HARVEST`, `POPULATION_CHANGE`, `MAINTENANCE`, `TERMINATE`, `CREATE`).
+   - Menyimpan referensi wadah, subjek, kuantitas, catatan, dan timestamp ISO `performedAt`.
 
 ---
 
-## 5. Strategi Migrasi Database (Custom Migration Orchestrator)
-Drizzle ORM memiliki keterbatasan pada CLI bawaan (`drizzle-kit migrate`) saat berhadapan dengan PostgreSQL Extensions, pre-flight checks, dan Transaction Mode connection pooling Supabase (port `6543`).
+## 4. Alur Sinkronisasi & Resolusi Konflik (Sync Engine)
 
-CymFarm menggunakan **Custom Migration Runner** di [`ops/migrate.ts`](../ops/migrate.ts):
-- **Otomatis dijalankan via `bun run db:migrate` dari root**.
-- **Pre-flight Assertion**: Memastikan koneksi pooler aman (`prepare: false`, single dedicated connection `max: 1`) dan membuat ekstensi krusial (`uuid-ossp`, `pgcrypto`) jika belum ada.
-- **Drizzle Programmatic Migrator**: Menjalankan migrasi Drizzle dari folder `main/drizzle` secara aman tanpa dependensi interaktif terminal.
-- **Post-flight Verification**: Memverifikasi tabel di schema `public` dan status pencatatan migrasi di tabel `drizzle.__drizzle_migrations`.
+Sinkronisasi dua arah dikendalikan oleh `main/src/lib/sync-engine.ts` dan endpoint `main/src/app/api/sync/route.ts`:
+
+### A. Push (Klien ke Cloud)
+1. Klien memfilter log lokal yang belum disinkronkan (`syncedToCloud: false`).
+2. Klien mengirim antrean log beserta snapshot modul, kategori, wadah, dan subjek lokal ke server via `POST /api/sync`.
+3. Server PostgreSQL melakukan:
+   - `activityLogs.insert().onConflictDoNothing()` (id berbasis timestamp client unik).
+   - `farmModules`, `containers`, `subjects` di-upsert dengan prinsip **Last-Write-Wins (LWW)** berdasarkan `updatedAt`.
+   - Jika ada log `TERMINATE` pada suatu wadah, wadah tersebut dihapus dari database fisik.
+
+### B. Pull & Pruning (Cloud ke Klien)
+1. Server mengembalikan seluruh snapshot master dari Supabase.
+2. Klien membuka **IndexedDB Atomic Transaction**:
+   - Log lokal yang berhasil terkirim ditandai `syncedToCloud = true`.
+   - **Anti-Zombie Pruning**: Jika suatu wadah atau modul lokal telah dihapus di cloud oleh perangkat lain, IndexedDB menghapusnya secara lokal agar tidak dibangkitkan kembali.
+   - Meng-update record lokal dengan data master awan.
+
+### C. Pembatalan Terintegrasi (Undo Rollback)
+Jika user membatalkan aksi via tombol **Undo** (baik dari notifikasi toast maupun halaman `/riwayat`):
+1. `activity-undo.ts` menghapus log dari IndexedDB dan mengembalikan status populasi atau tanggal panen ke kondisi sebelumnya.
+2. Jika record tersebut sudah terlanjur tersinkronisasi ke cloud, klien otomatis memanggil `POST /api/sync/undo` untuk menghapus baris log tersebut di Supabase PostgreSQL.
+
+---
+
+## 5. PWA & Service Worker Offline Caching
+
+1. **`main/public/manifest.json`**:
+   - Mendaftarkan nama aplikasi, mode `standalone`, tema warna `#10b981`, serta icon standar `icon-192.png` dan `icon-512.png`.
+2. **`main/public/sw.js`**:
+   - Menyimpan cache static shell (`/`, `/lapangan`, `/riwayat`, `/login`, CSS, JS).
+   - Strategi `Stale-While-Revalidate` untuk aset tampilan (instan dari cache, perbarui di latar belakang jika online).
+   - Seluruh endpoint API (`/api/*`) di-bypass dari cache agar ditangani secara native oleh IndexedDB.
+3. **`PwaInstallPrompt.tsx`**:
+   - Dialog mengambang ramah awam yang memandu pengguna memasang aplikasi ke layar utama HP dengan jeda tunda (*24-hour snooze*) jika ditutup sementara.
