@@ -15,6 +15,7 @@ export interface LocalFarmModule {
   description?: string;
   config: ModularFarmConfig;
   updatedAt?: string;
+  deletedAt?: string | null;
   syncedToCloud?: boolean;
 }
 
@@ -28,6 +29,7 @@ export interface LocalContainer {
   maintenanceNote?: string;
   sortOrder: number;
   updatedAt?: string;
+  deletedAt?: string | null;
   syncedToCloud?: boolean;
 }
 
@@ -41,6 +43,7 @@ export interface LocalSubject {
   lastRoutineDate?: string; // YYYY-MM-DD
   lastHarvestDate?: string; // YYYY-MM-DD
   updatedAt?: string;
+  deletedAt?: string | null;
   syncedToCloud?: boolean;
 }
 

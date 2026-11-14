@@ -8,6 +8,13 @@
       "when": 1794575358298,
       "tag": "0000_fancy_baron_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794634651179,
+      "tag": "0001_outstanding_gambit",
+      "breakpoints": true
     }
   ]
 }

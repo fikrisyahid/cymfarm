@@ -46,6 +46,7 @@ export const farmModules = pgTable("farm_modules", {
   config: jsonb("config").$type<ModularFarmConfig>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 /**
@@ -65,6 +66,8 @@ export const containers = pgTable("containers", {
   maintenanceNote: text("maintenance_note"),
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 /**
@@ -85,6 +88,8 @@ export const subjects = pgTable("subjects", {
   lastHarvestDate: text("last_harvest_date"), // YYYY-MM-DD
   enteredAt: timestamp("entered_at").defaultNow().notNull(),
   terminatedAt: timestamp("terminated_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 /**
