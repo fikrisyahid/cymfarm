@@ -97,7 +97,7 @@ export function AppShell({
           <div className="text-base font-black leading-tight text-slate-900 truncate">
             {pathname.startsWith("/lapangan")
               ? activeContainerCode ? `Area: ${activeContainerCode}` : "Halaman Lapangan"
-              : pathname.startsWith("/analisa")
+              : pathname.startsWith("/riwayat")
               ? "Catatan & Riwayat"
               : "Admin Studio"}
           </div>
@@ -176,9 +176,9 @@ export function AppShell({
         {/* Right Side: Riwayat */}
         <div className="flex-1 flex justify-center">
           <Link
-            href="/analisa"
+            href="/riwayat"
             className={`flex flex-col items-center justify-center py-1 transition ${
-              pathname.startsWith("/analisa")
+              pathname.startsWith("/riwayat")
                 ? "text-emerald-700 font-black"
                 : "text-slate-500 font-bold hover:text-slate-800"
             }`}

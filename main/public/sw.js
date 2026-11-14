@@ -4,7 +4,7 @@ const CACHE_NAME = "cymfarm-cache-v1";
 const STATIC_ASSETS = [
   "/",
   "/lapangan",
-  "/analisa",
+  "/riwayat",
   "/login",
   "/manifest.json",
   "/icon.svg",
