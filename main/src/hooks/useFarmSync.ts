@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { runFarmSync, subscribeSyncState, getLastSyncTime } from "@/lib/sync-engine";
+import { runFarmSync, subscribeSyncState, getLastSyncTime, getIsSyncing } from "@/lib/sync-engine";
 
 export interface FarmSyncHookReturn {
   isSyncing: boolean;
@@ -16,12 +16,16 @@ export interface FarmSyncHookReturn {
  * - Exposes triggerSync() for manual triggering after CRUD operations
  */
 export function useFarmSync(): FarmSyncHookReturn {
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  // Inisialisasi dengan nilai real-time dari singleton sync engine agar saat pindah halaman state tidak tertinggal
+  const [isSyncing, setIsSyncing] = useState<boolean>(() => getIsSyncing());
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(getLastSyncTime());
   const isMountedRef = useRef(true);
 
   useEffect(() => {
     isMountedRef.current = true;
+
+    // Pastikan sync state langsung cocok dengan singleton saat baru mount
+    setIsSyncing(getIsSyncing());
 
     // Subscribe to global sync engine state changes
     const unsubscribe = subscribeSyncState((syncing) => {
@@ -33,8 +37,10 @@ export function useFarmSync(): FarmSyncHookReturn {
       }
     });
 
-    // 1. Initial sync on page mount
-    runFarmSync().catch(() => {});
+    // 1. Initial sync on page mount (hanya jika sedang tidak in progress)
+    if (!getIsSyncing()) {
+      runFarmSync().catch(() => {});
+    }
 
     // 2. Sync on window focus / tab visibility change (crucial for multi-device family usage)
     const handleFocus = () => {

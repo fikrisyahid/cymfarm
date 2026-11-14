@@ -19,6 +19,10 @@ export function getLastSyncTime(): number | null {
   return lastSyncTimestamp;
 }
 
+export function getIsSyncing(): boolean {
+  return isSyncInProgress;
+}
+
 export async function runFarmSync(): Promise<{ success: boolean; error?: string }> {
   if (isSyncInProgress) return { success: true };
 
