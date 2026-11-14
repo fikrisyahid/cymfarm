@@ -4,38 +4,15 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ensureInitialCleanState, localDb } from "@/lib/offline-db";
 import { AppShell } from "@/components/AppShell";
-import { Activity, FileText, Search, X, Undo2, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
-import { undoActivityLog } from "@/lib/activity-undo";
-import { runFarmSync } from "@/lib/sync-engine";
+import { Activity, FileText, Search, X } from "lucide-react";
 import type { LocalActivityLog } from "@/lib/offline-db";
 
-type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "POPULATION_CHANGE" | "MAINTENANCE";
+type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "POPULATION_CHANGE" | "MAINTENANCE" | "UNDO";
 
 export default function RiwayatPage() {
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("ALL");
-  const [undoingLogId, setUndoingLogId] = useState<string | null>(null);
-  const [confirmUndoLog, setConfirmUndoLog] = useState<LocalActivityLog | null>(null);
-
-  const handleConfirmUndo = async () => {
-    if (!confirmUndoLog) return;
-    const logId = confirmUndoLog.id;
-    setConfirmUndoLog(null);
-    setUndoingLogId(logId);
-
-    const res = await undoActivityLog(logId);
-    setUndoingLogId(null);
-
-    if (res.success) {
-      toast.success(res.message);
-      // Trigger sync agar perubahan rollback data subjek/wadah terdorong ke cloud
-      runFarmSync().catch(() => {});
-    } else {
-      toast.error(res.message);
-    }
-  };
 
   useEffect(() => {
     ensureInitialCleanState().then(() => setReady(true));
@@ -166,6 +143,16 @@ export default function RiwayatPage() {
             >
               ⚠️ Kendala
             </button>
+            <button
+              onClick={() => setSelectedFilter("UNDO")}
+              className={`px-3 py-1.5 rounded-full text-xs font-black shrink-0 transition-colors ${
+                selectedFilter === "UNDO"
+                  ? "bg-purple-600 text-white"
+                  : "bg-purple-50 text-purple-900 hover:bg-purple-100"
+              }`}
+            >
+              ↩️ Pembatalan (Undo)
+            </button>
           </div>
         </div>
 
@@ -200,6 +187,7 @@ export default function RiwayatPage() {
               const isHarvest = log.activityType === "HARVEST";
               const isMaintenance = log.activityType === "MAINTENANCE";
               const isPopulation = log.activityType === "POPULATION_CHANGE";
+              const isUndo = (log.activityType as any) === "UNDO";
 
               return (
                 <div
@@ -218,6 +206,8 @@ export default function RiwayatPage() {
                             ? "bg-blue-100 text-blue-950"
                             : isMaintenance
                             ? "bg-rose-100 text-rose-950"
+                            : isUndo
+                            ? "bg-purple-100 text-purple-950"
                             : "bg-slate-100 text-slate-700"
                         }`}
                       >
@@ -229,6 +219,8 @@ export default function RiwayatPage() {
                           ? "Populasi"
                           : isMaintenance
                           ? "Kendala"
+                          : isUndo
+                          ? "Batal (Undo)"
                           : log.activityType}
                       </span>
                       <span className="text-xs font-bold text-slate-400">
@@ -259,69 +251,10 @@ export default function RiwayatPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Tombol Undo */}
-                    <button
-                      onClick={() => setConfirmUndoLog(log)}
-                      disabled={undoingLogId === log.id}
-                      className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-black text-slate-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:scale-95 transition disabled:opacity-50"
-                      title="Batalkan aktivitas ini (Undo)"
-                    >
-                      <Undo2 className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Undo</span>
-                    </button>
                   </div>
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* Modal Konfirmasi Undo */}
-        {confirmUndoLog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="w-full max-w-sm rounded-3xl border-2 border-slate-300 bg-white p-6 shadow-2xl space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 border-2 border-amber-200 text-amber-600">
-                  <AlertTriangle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900">Batalkan Aktivitas?</h3>
-                  <p className="text-xs font-bold text-slate-400">Konfirmasi pembatalan (Undo)</p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border-2 border-slate-100 bg-slate-50 p-3.5 text-xs font-bold text-slate-700 space-y-1">
-                <div className="text-[10px] font-black uppercase text-slate-400">Aktivitas yang dibatalkan:</div>
-                <div className="text-slate-900 font-black">{confirmUndoLog.note || confirmUndoLog.activityType}</div>
-                {confirmUndoLog.quantity !== undefined && (
-                  <div className="text-slate-500">
-                    Jumlah: <span className="font-black text-slate-800">{confirmUndoLog.quantity} {confirmUndoLog.unit || ""}</span>
-                  </div>
-                )}
-              </div>
-
-              <p className="text-xs font-bold text-slate-500 leading-relaxed">
-                Status wadah atau populasi terkait akan otomatis dikembalikan ke kondisi sebelum aktivitas ini dicatat.
-              </p>
-
-              <div className="flex gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setConfirmUndoLog(null)}
-                  className="flex-1 rounded-xl border-2 border-slate-300 bg-white py-2.5 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 transition"
-                >
-                  Kembali
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmUndo}
-                  className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-black text-white hover:bg-rose-700 active:scale-95 transition shadow-sm"
-                >
-                  Ya, Batalkan
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
