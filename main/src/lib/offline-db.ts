@@ -64,6 +64,7 @@ export interface LocalActivityLog {
   quantity: number;
   unit?: string;
   note?: string;
+  targetDate: string; // 'YYYY-MM-DD'
   performedAt: string;
   syncedToCloud: boolean;
 }
@@ -113,12 +114,12 @@ export class CymFarmOfflineDB extends Dexie {
 
   constructor() {
     super("cymfarm_modular_db_v2");
-    this.version(1).stores({
+    this.version(2).stores({
       farmModules: "id, category, trackingMode, syncedToCloud",
       farmModuleCategories: "id",
       containers: "id, moduleId, code, status, sortOrder, syncedToCloud",
       subjects: "id, moduleId, containerId, isActive, syncedToCloud",
-      activityLogs: "id, moduleId, containerId, activityType, performedAt, syncedToCloud",
+      activityLogs: "id, moduleId, containerId, activityType, targetDate, performedAt, syncedToCloud",
       feedPurchases: "id, category, purchasedAt, syncedToCloud",
       feedCategories: "id",
     });

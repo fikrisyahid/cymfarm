@@ -178,15 +178,19 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
         // Upsert log aktivitas baru & terapkan state aksinya (Apply Action Reducer)
         if (Array.isArray(activityLogs) && activityLogs.length > 0) {
           for (const log of activityLogs) {
+            const perfIso = new Date(log.performedAt).toISOString();
+            const targetDateStr = log.targetDate || perfIso.split("T")[0];
+
             await localDb.activityLogs.put({
               ...log,
+              targetDate: targetDateStr,
               quantity: Number(log.quantity) || 1,
-              performedAt: new Date(log.performedAt).toISOString(),
+              performedAt: perfIso,
               syncedToCloud: true,
             });
 
             // Terapkan aksi riil ke subjek & wadah lokal (state synchronization)
-            const logDateStr = new Date(log.performedAt).toISOString().split("T")[0];
+            const logDateStr = targetDateStr;
 
             if (log.activityType === "ROUTINE" && log.subjectId) {
               const currentSubj = await localDb.subjects.get(log.subjectId);

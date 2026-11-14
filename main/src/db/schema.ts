@@ -100,10 +100,11 @@ export const activityLogs = pgTable("activity_logs", {
   moduleId: text("module_id").notNull(),
   containerId: text("container_id").notNull(),
   subjectId: text("subject_id"),
-  activityType: text("activity_type").notNull(), // 'ROUTINE' | 'HARVEST' | 'MAINTENANCE' | 'TERMINATE'
+  activityType: text("activity_type").notNull(), // 'ROUTINE' | 'HARVEST' | 'MAINTENANCE' | 'POPULATION_CHANGE' | 'CREATE' | 'TERMINATE'
   quantity: numeric("quantity", { precision: 8, scale: 2 }).default("1"),
   unit: text("unit"),
   note: text("note"),
+  targetDate: text("target_date").default("").notNull(), // 'YYYY-MM-DD' tanggal operasional perlakuan
   performedAt: timestamp("performed_at").defaultNow().notNull(),
   syncedToCloud: boolean("synced_to_cloud").default(true).notNull(),
 });

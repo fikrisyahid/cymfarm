@@ -22,6 +22,9 @@ export async function POST(req: Request) {
     // 1. Process activity logs (Pure Append Only, No Hard Delete)
     if (Array.isArray(pendingLogs) && pendingLogs.length > 0) {
       for (const log of pendingLogs) {
+        const perfDate = log.performedAt ? new Date(log.performedAt) : new Date();
+        const dateStr = log.targetDate || perfDate.toISOString().split("T")[0];
+
         await db
           .insert(schema.activityLogs)
           .values({
@@ -33,7 +36,8 @@ export async function POST(req: Request) {
             quantity: log.quantity ? log.quantity.toString() : "1",
             unit: log.unit || null,
             note: log.note || null,
-            performedAt: log.performedAt ? new Date(log.performedAt) : new Date(),
+            targetDate: dateStr,
+            performedAt: perfDate,
             syncedToCloud: true,
           })
           .onConflictDoNothing();

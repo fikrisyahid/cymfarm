@@ -1,0 +1,1 @@
+ALTER TABLE "activity_logs" ADD COLUMN "target_date" text DEFAULT '' NOT NULL;
