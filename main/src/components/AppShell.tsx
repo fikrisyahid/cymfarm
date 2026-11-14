@@ -28,6 +28,7 @@ import { useAuthSession } from "@/lib/use-session";
 import { useFarmSync } from "@/hooks/useFarmSync";
 import { useOperasionalDate } from "@/context/DateContext";
 import { QrScannerModal } from "./QrScannerModal";
+import { DedicatedDatePickerModal } from "./DedicatedDatePickerModal";
 import { toast } from "sonner";
 
 interface AppShellProps {
@@ -46,6 +47,7 @@ export function AppShell({
   const { session } = useAuthSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const { isSyncing, triggerSync } = useFarmSync();
   const { selectedDate, setSelectedDate, isToday, goToToday } = useOperasionalDate();
 
@@ -100,63 +102,30 @@ export function AppShell({
 
         {/* Date Picker di Tengah Header */}
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="relative flex items-center">
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById("header-date-input") as HTMLInputElement | null;
-                if (el) {
-                  if (typeof el.showPicker === "function") {
-                    el.showPicker();
-                  } else {
-                    el.click();
-                  }
-                }
-              }}
-              className="flex items-center gap-1.5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 cursor-pointer hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition active:scale-98"
-            >
-              <Calendar className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
-              <span className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">
-                {new Date(selectedDate).toLocaleDateString("id-ID", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
+          <button
+            type="button"
+            onClick={() => setDatePickerOpen(true)}
+            className="flex items-center gap-1.5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 cursor-pointer hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition active:scale-98"
+          >
+            <Calendar className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+            <span className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">
+              {new Date(selectedDate).toLocaleDateString("id-ID", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+            {isToday ? (
+              <span className="rounded-md bg-emerald-700 dark:bg-emerald-600 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+                Hari Ini
               </span>
-              {isToday ? (
-                <span className="rounded-md bg-emerald-700 dark:bg-emerald-600 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
-                  Hari Ini
-                </span>
-              ) : (
-                <span className="rounded-md bg-amber-500 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
-                  Masa Lalu
-                </span>
-              )}
-            </button>
-            <input
-              id="header-date-input"
-              type="date"
-              value={selectedDate}
-              max={getTodayDateStr()}
-              onChange={(e) => {
-                const val = e.target.value;
-                const today = getTodayDateStr();
-                if (val) {
-                  // Pastikan tidak boleh melebihi hari ini
-                  if (val > today) {
-                    setSelectedDate(today);
-                    toast.warning("Hanya bisa memilih hari ini atau hari kemarin.");
-                  } else {
-                    setSelectedDate(val);
-                  }
-                }
-              }}
-              className="sr-only pointer-events-none"
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-          </div>
+            ) : (
+              <span className="rounded-md bg-amber-500 px-1.5 py-0.2 text-[9px] font-black text-white uppercase shrink-0">
+                Masa Lalu
+              </span>
+            )}
+          </button>
 
           {!isToday && (
             <button
@@ -272,6 +241,17 @@ export function AppShell({
         <QrScannerModal
           onScanSuccess={handleScanSuccess}
           onClose={() => setScannerOpen(false)}
+        />
+      )}
+
+      {/* DEDICATED DATE PICKER MODAL */}
+      {datePickerOpen && (
+        <DedicatedDatePickerModal
+          selectedDate={selectedDate}
+          onSelectDate={(newDate) => {
+            setSelectedDate(newDate);
+          }}
+          onClose={() => setDatePickerOpen(false)}
         />
       )}
 
