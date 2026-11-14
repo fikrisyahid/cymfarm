@@ -35,6 +35,7 @@ export function AdminModularStudio() {
   const [harvestType, setHarvestType] = useState<"RECURRING" | "ONCE">("RECURRING");
   const [harvestActionLabel, setHarvestActionLabel] = useState("Panen Telur / Hasil");
   const [harvestUnitLabel, setHarvestUnitLabel] = useState("Butir");
+  const [harvestAlertDays, setHarvestAlertDays] = useState<number>(2);
 
   // Modal Tambah Wadah Baru ke Modul Tertentu
   const [showAddContainerModal, setShowAddContainerModal] = useState(false);
@@ -62,6 +63,7 @@ export function AdminModularStudio() {
     setHarvestType("RECURRING");
     setHarvestActionLabel("Panen Telur / Hasil");
     setHarvestUnitLabel("Butir");
+    setHarvestAlertDays(2);
     setContainerName("Wadah Utama A");
     setContainerCode("WADAH-A");
     setContainerCapacity(100);
@@ -77,6 +79,7 @@ export function AdminModularStudio() {
     setHarvestType(m.config.harvestType);
     setHarvestActionLabel(m.config.harvestActionLabel);
     setHarvestUnitLabel(m.config.harvestUnitLabel || "Butir");
+    setHarvestAlertDays(m.config.harvestAlertDays ?? (m.config.harvestType === "RECURRING" ? 2 : 0));
     setShowModal(true);
   };
 
@@ -168,6 +171,7 @@ export function AdminModularStudio() {
         harvestType,
         harvestActionLabel: harvestActionLabel.trim() || "Panen Hasil",
         harvestUnitLabel: harvestType === "RECURRING" ? harvestUnitLabel.trim() || "Unit" : undefined,
+        harvestAlertDays: Number(harvestAlertDays) >= 0 ? Number(harvestAlertDays) : 0,
       },
       updatedAt: new Date().toISOString(),
       syncedToCloud: false,
@@ -627,6 +631,31 @@ export function AdminModularStudio() {
                       />
                     </div>
                   )}
+                </div>
+
+                {/* Pengaturan Alert Keterlambatan Panen */}
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-black text-slate-700">
+                        Alert Keterlambatan Panen (Hari)
+                      </label>
+                      <p className="text-[11px] font-bold text-slate-500">
+                        Munculkan highlight peringatan jika tidak ada panen selama X hari (Isi 0 jika tidak butuh alert).
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                      <input
+                        type="number"
+                        min={0}
+                        max={365}
+                        value={harvestAlertDays}
+                        onChange={(e) => setHarvestAlertDays(Number(e.target.value))}
+                        className="w-16 rounded-xl border-2 border-slate-300 bg-white px-2.5 py-1.5 text-center text-sm font-black text-slate-900 focus:border-emerald-600 focus:outline-none"
+                      />
+                      <span className="text-xs font-bold text-slate-600">Hari</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

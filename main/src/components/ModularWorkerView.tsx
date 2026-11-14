@@ -131,8 +131,16 @@ export function ModularWorkerView({
   const harvestCountToday = harvestLogsToday.length;
   const totalHarvestQtyToday = harvestLogsToday.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
 
-  // Logika Timestamp Panen: Jika hari ini -> jam (HH:mm WIB), jika beda hari -> tanggal lengkap (DD MMM YYYY) + berapa hari lalu
+  // Logika Timestamp & Threshold Alert Panen
   const isHarvestDoneToday = harvestCountToday > 0;
+
+  // Threshold alert dari modul (default: RECURRING = 2 hari, ONCE = 0 alias non-aktif)
+  const alertThresholdDays =
+    currentModule?.config.harvestAlertDays !== undefined
+      ? currentModule.config.harvestAlertDays
+      : currentModule?.config.harvestType === "RECURRING"
+      ? 2
+      : 0;
 
   let harvestTimestampDisplay = "Belum pernah ada panen";
   let daysSinceLastHarvest: number | null = null;
@@ -159,14 +167,16 @@ export function ModularWorkerView({
         year: "numeric",
       });
       harvestTimestampDisplay = `${formattedDate} (${daysSinceLastHarvest} hari lalu)`;
-      // Jika sudah >= 2 hari belum panen, kita flag sebagai overdue
-      if (daysSinceLastHarvest >= 2) {
+
+      // Alert aktif hanya jika threshold > 0 dan selisih hari melebihi threshold
+      if (alertThresholdDays > 0 && daysSinceLastHarvest >= alertThresholdDays) {
         isOverdueHarvest = true;
       }
     }
   } else {
-    // Belum pernah panen sama sekali
-    isOverdueHarvest = currentPopulation > 0; // kalau ada populasi tapi belum pernah panen, layak di-highlight
+    // Belum pernah panen sama sekali: murni informasi, BUKAN alert berbahaya
+    harvestTimestampDisplay = "Belum pernah panen";
+    isOverdueHarvest = false;
   }
 
   const isRoutineDoneToday = routineCountToday > 0;
@@ -556,9 +566,9 @@ export function ModularWorkerView({
           }`}
         >
           {/* Badge Overdue Kecil di Pojok Kanan Atas Tombol */}
-          {isOverdueHarvest && (
+          {isOverdueHarvest && daysSinceLastHarvest !== null && (
             <span className="absolute top-2.5 right-3 rounded-full bg-rose-600 px-2.5 py-0.5 text-[10px] font-black uppercase text-white shadow-xs">
-              ⚠️ {daysSinceLastHarvest ? `${daysSinceLastHarvest} Hari Belum Panen` : "Perlu Panen"}
+              ⚠️ {daysSinceLastHarvest} Hari Belum Panen
             </span>
           )}
 

@@ -19,9 +19,12 @@ export interface ModularFarmConfig {
   routineActionLabel: string;
   
   // Tipe panen
-  harvestType: "RECURRING" | "ONCE"; // RECURRING = berkala (ayam/jamur/cabai), ONCE = sekaligus (lele/sayur cabut)
+  harvestType: "RECURRING" | "ONCE"; // RECURRING = berkala (ayam/jamur/cabai), ONCE = sekaligus (lele/sayur cabut/kambing)
   harvestActionLabel: string; // misal: "Panen Telur", "Petik Jamur", "Panen Total & Kosongkan"
   harvestUnitLabel?: string; // misal: "butir", "kg", "ikat"
+
+  // Threshold alert keterlambatan panen (dalam hari). 0 = dimatikan / tidak ada alert
+  harvestAlertDays?: number; // default: 0 untuk ONCE, 2 untuk RECURRING
 }
 
 /**
