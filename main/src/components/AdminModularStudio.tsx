@@ -10,6 +10,7 @@ import {
 } from "@/lib/offline-db";
 import { Sparkles, Plus, Trash2, Edit2, Layers, Check, X, Box, QrCode, AlertTriangle, RefreshCw, Database } from "lucide-react";
 import { QrViewModal } from "./QrViewModal";
+import { DedicatedCategorySelect } from "./DedicatedCategorySelect";
 import { runFarmSync, resetLastSyncTime } from "@/lib/sync-engine";
 import { toast } from "sonner";
 
@@ -549,17 +550,12 @@ export function AdminModularStudio() {
                       + Buat Kategori Baru
                     </button>
                   </div>
-                  <select
+                  <DedicatedCategorySelect
+                    categories={moduleCategories || []}
                     value={modCategory}
-                    onChange={(e) => setModCategory(e.target.value)}
-                    className="mt-1 w-full rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:outline-none"
-                  >
-                    {(moduleCategories || []).map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(catId) => setModCategory(catId)}
+                    onOpenCreateNew={() => setShowCatModal(true)}
+                  />
                 </div>
               </div>
 
