@@ -23,6 +23,10 @@ export function getIsSyncing(): boolean {
   return isSyncInProgress;
 }
 
+export function resetLastSyncTime() {
+  lastSyncTimestamp = null;
+}
+
 export async function runFarmSync(): Promise<{ success: boolean; error?: string }> {
   if (isSyncInProgress) return { success: true };
 

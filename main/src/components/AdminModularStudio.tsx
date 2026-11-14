@@ -8,9 +8,10 @@ import {
   type LocalContainer,
   type LocalSubject,
 } from "@/lib/offline-db";
-import { Sparkles, Plus, Trash2, Edit2, Layers, Check, X, Box, QrCode } from "lucide-react";
+import { Sparkles, Plus, Trash2, Edit2, Layers, Check, X, Box, QrCode, AlertTriangle, RefreshCw, Database } from "lucide-react";
 import { QrViewModal } from "./QrViewModal";
-import { runFarmSync } from "@/lib/sync-engine";
+import { runFarmSync, resetLastSyncTime } from "@/lib/sync-engine";
+import { toast } from "sonner";
 
 export function AdminModularStudio() {
   const rawModules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
@@ -58,6 +59,61 @@ export function AdminModularStudio() {
   const [containerName, setContainerName] = useState("");
   const [containerCode, setContainerCode] = useState("");
   const [containerCapacity, setContainerCapacity] = useState(100);
+
+  // State Reset Database
+  const [resettingLocal, setResettingLocal] = useState(false);
+  const [resettingCloud, setResettingCloud] = useState(false);
+  const [showConfirmResetModal, setShowConfirmResetModal] = useState<"LOCAL" | "CLOUD" | null>(null);
+
+  // Handler Hapus Seluruh Data DB Lokal (IndexedDB)
+  const handleResetLocalDb = async () => {
+    setResettingLocal(true);
+    try {
+      await localDb.transaction(
+        "rw",
+        [
+          localDb.farmModules,
+          localDb.containers,
+          localDb.subjects,
+          localDb.activityLogs,
+          localDb.feedPurchases,
+        ],
+        async () => {
+          await localDb.activityLogs.clear();
+          await localDb.subjects.clear();
+          await localDb.containers.clear();
+          await localDb.farmModules.clear();
+          await localDb.feedPurchases.clear();
+        }
+      );
+      resetLastSyncTime();
+      toast.success("✅ Seluruh data di database lokal IndexedDB berhasil dibersihkan!");
+      setShowConfirmResetModal(null);
+    } catch (err: any) {
+      toast.error(`Gagal menghapus database lokal: ${err?.message}`);
+    } finally {
+      setResettingLocal(false);
+    }
+  };
+
+  // Handler Hapus Seluruh Data DB Cloud (Supabase PostgreSQL)
+  const handleResetCloudDb = async () => {
+    setResettingCloud(true);
+    try {
+      const res = await fetch("/api/admin/reset-cloud", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal mengosongkan database cloud.");
+      }
+      resetLastSyncTime();
+      toast.success("✅ Seluruh data di database cloud Supabase berhasil dihapus!");
+      setShowConfirmResetModal(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Gagal menghapus database cloud.");
+    } finally {
+      setResettingCloud(false);
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingModuleId(null);
@@ -886,6 +942,106 @@ export function AdminModularStudio() {
             setSelectedQrModule(null);
           }}
         />
+      )}
+
+      {/* DANGER ZONE: RESET DATABASE LOKAL & CLOUD */}
+      <div className="rounded-3xl border-2 border-rose-300 bg-rose-50/50 p-6 space-y-4">
+        <div className="flex items-center gap-2.5 text-rose-900">
+          <AlertTriangle className="h-5 w-5 text-rose-600" />
+          <h3 className="text-base font-black">Zona Berbahaya: Reset Database</h3>
+        </div>
+        <p className="text-xs font-bold text-slate-600 leading-relaxed">
+          Gunakan tombol di bawah jika Anda ingin mengosongkan seluruh data operasional (kandang, modul ternak, populasi, dan seluruh riwayat catatan). Struktur tabel tidak dihapus.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Tombol Hapus DB Lokal */}
+          <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-slate-700" />
+              <h4 className="text-xs font-black text-slate-900">Database Lokal (IndexedDB)</h4>
+            </div>
+            <p className="text-[11px] font-bold text-slate-500">
+              Hanya membersihkan data yang tersimpan di browser perangkat/HP ini.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowConfirmResetModal("LOCAL")}
+              disabled={resettingLocal}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 py-2.5 text-xs font-black text-rose-700 hover:bg-rose-100 active:scale-95 transition disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Hapus Data DB Lokal</span>
+            </button>
+          </div>
+
+          {/* Tombol Hapus DB Cloud */}
+          <div className="rounded-2xl border-2 border-rose-200 bg-white p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-rose-600" />
+              <h4 className="text-xs font-black text-rose-950">Database Cloud (Supabase)</h4>
+            </div>
+            <p className="text-[11px] font-bold text-slate-500">
+              Mengosongkan seluruh data server cloud Supabase di PostgreSQL.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowConfirmResetModal("CLOUD")}
+              disabled={resettingCloud}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-2.5 text-xs font-black text-white hover:bg-rose-700 active:scale-95 transition disabled:opacity-50 shadow-xs"
+            >
+              {resettingCloud ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              <span>Hapus Data DB Cloud</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MODAL KONFIRMASI RESET */}
+      {showConfirmResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm rounded-3xl border-2 border-rose-400 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 border-2 border-rose-300 text-rose-600">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  {showConfirmResetModal === "LOCAL" ? "Kosongkan DB Lokal?" : "Kosongkan DB Cloud?"}
+                </h3>
+                <p className="text-xs font-bold text-slate-400">Konfirmasi tindakan berbahaya</p>
+              </div>
+            </div>
+
+            <p className="text-xs font-bold text-slate-600 leading-relaxed">
+              {showConfirmResetModal === "LOCAL"
+                ? "Tindakan ini akan menghapus seluruh data kandang, modul, populasi, dan riwayat yang tersimpan di browser ini. Data yang sudah tersinkron ke cloud tidak terhapus."
+                : "Tindakan ini akan menghapus seluruh data di PostgreSQL Supabase secara permanen. Perangkat lain yang melakukan sync nantinya akan mendapati database server kosong."}
+            </p>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowConfirmResetModal(null)}
+                className="flex-1 rounded-xl border-2 border-slate-300 bg-white py-2.5 text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={showConfirmResetModal === "LOCAL" ? handleResetLocalDb : handleResetCloudDb}
+                disabled={resettingLocal || resettingCloud}
+                className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-black text-white hover:bg-rose-700 active:scale-95 transition shadow-sm disabled:opacity-50"
+              >
+                {resettingLocal || resettingCloud ? "Memproses..." : "Ya, Kosongkan Data"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
