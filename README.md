@@ -32,17 +32,14 @@ cp .env.example .env
 ```
 Buka file `.env` di root dan isi kredensial yang dibutuhkan:
 ```env
+# Koneksi Database PostgreSQL / Supabase
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.xxxx.supabase.co:5432/postgres"
+
 # Akun Akses Masuk (Tanpa registrasi publik)
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="supersecretpassword"
 USER_USERNAME="keluarga"
 USER_PASSWORD="keluargapassword"
-AUTH_SECRET="buat-string-acak-bebas-di-sini"
-
-# Supabase & PostgreSQL (Bisa buat gratis di supabase.com)
-NEXT_PUBLIC_SUPABASE_URL="https://xxxx.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhxxxx..."
-DATABASE_URL="postgresql://postgres:[PASSWORD]@db.xxxx.supabase.co:5432/postgres"
 ```
 
 ### 3. Migrasi Database Cloud
@@ -70,14 +67,10 @@ Buka `http://localhost:3000` di browser komputer atau buka via IP LAN di HP: `ht
    - **Root Directory**: Ubah / klik edit lalu pilih folder `main`.
    - **Install Command**: `bun install` (atau biarkan default).
    - **Build Command**: `bun run build` (atau `next build`).
-4. **Environment Variables**: Masukkan seluruh isi dari file `.env` Anda ke tab *Environment Variables* di Vercel:
-   - `NEXT_PUBLIC_APP_NAME`
-   - `ADMIN_USERNAME` & `ADMIN_PASSWORD`
-   - `USER_USERNAME` & `USER_PASSWORD`
-   - `AUTH_SECRET`
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `DATABASE_URL`
+4. **Environment Variables**: Masukkan 5 variabel lingkungan berikut ke tab *Environment Variables* di Vercel:
+   - `DATABASE_URL` (Connection string PostgreSQL / Supabase Anda)
+   - `ADMIN_USERNAME` & `ADMIN_PASSWORD` (Kredensial login Admin Studio)
+   - `USER_USERNAME` & `USER_PASSWORD` (Kredensial login Anggota Keluarga)
 5. Klik **Deploy**.
 6. *(Opsional)* Jika menggunakan Custom Domain di Vercel dengan Cloudflare:
    - Di Cloudflare DNS, set CNAME ke Vercel dengan mode **DNS Only** (bukan Proxied).
