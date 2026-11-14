@@ -1,13 +1,14 @@
 // CymFarm Offline PWA Service Worker Cache
-const CACHE_NAME = "cymfarm-cache-v1";
+const CACHE_NAME = "cymfarm-cache-v2";
 
 const STATIC_ASSETS = [
-  "/",
   "/lapangan",
   "/riwayat",
   "/login",
   "/manifest.json",
   "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
 ];
 
 // Install: pre-cache essential assets
@@ -39,6 +40,11 @@ self.addEventListener("fetch", (event) => {
 
   // Jangan cache API sync / auth (biar selalu fresh atau ditangani Dexie secara offline)
   if (url.pathname.startsWith("/api/")) {
+    return;
+  }
+
+  // Jika navigasi ke root '/', bypass SW cache dan biarkan network/Next.js middleware redirect ke /lapangan
+  if (request.mode === "navigate" && url.pathname === "/") {
     return;
   }
 
@@ -75,7 +81,7 @@ self.addEventListener("fetch", (event) => {
         .catch(() => {
           // If offline and navigate to html, fallback to cached /lapangan
           if (request.mode === "navigate") {
-            return caches.match("/lapangan") || caches.match("/");
+            return caches.match("/lapangan");
           }
         });
     })
