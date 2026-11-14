@@ -80,39 +80,45 @@ Skema database terletak di `main/src/db/schema.ts` dan terdiri dari tabel-tabel 
 
 ---
 
-## 4. Alur Sinkronisasi & Resolusi Konflik (Sync Engine)
+## 4. Alur Sinkronisasi & Resolusi Konflik (Incremental Sync Engine)
 
 Sinkronisasi dua arah dikendalikan oleh `main/src/lib/sync-engine.ts` dan endpoint `main/src/app/api/sync/route.ts`:
 
-### A. Push (Klien ke Cloud)
-1. Klien memfilter log lokal yang belum disinkronkan (`syncedToCloud: false`).
-2. Klien mengirim antrean log beserta snapshot modul, kategori, wadah, dan subjek lokal ke server via `POST /api/sync`.
+### A. Incremental Push (Klien ke Cloud)
+1. Klien hanya memfilter data lokal yang baru dibuat atau diubah (`syncedToCloud: false`):
+   - Entitas: `farmModules`, `containers`, `subjects`, `feedPurchases`.
+   - Log: `activityLogs` (Pure Append-Only).
+2. Klien mengirim data baru tersebut beserta timestamp `lastPulledAt` ke server via `POST /api/sync`.
 3. Server PostgreSQL melakukan:
    - `activityLogs.insert().onConflictDoNothing()` (id berbasis timestamp client unik).
    - `farmModules`, `containers`, `subjects` di-upsert dengan prinsip **Last-Write-Wins (LWW)** berdasarkan `updatedAt`.
-   - Jika ada log `TERMINATE` pada suatu wadah, wadah tersebut dihapus dari database fisik.
+   - **Soft Delete**: Penghapusan wadah atau modul hanya mengisi `deleted_at = NOW()`, sehingga baris tetap ada di cloud dan tidak merusak integritas foreign key maupun log historis.
 
-### B. Pull & Pruning (Cloud ke Klien)
-1. Server mengembalikan seluruh snapshot master dari Supabase.
-2. Klien membuka **IndexedDB Atomic Transaction**:
-   - Log lokal yang berhasil terkirim ditandai `syncedToCloud = true`.
-   - **Anti-Zombie Pruning**: Jika suatu wadah atau modul lokal telah dihapus di cloud oleh perangkat lain, IndexedDB menghapusnya secara lokal agar tidak dibangkitkan kembali.
-   - Meng-update record lokal dengan data master awan.
+### B. Incremental Pull & State Replay (Cloud ke Klien)
+1. **Delta Query**: Server hanya mengembalikan baris yang memiliki `updatedAt > lastPulledAt` (atau `performedAt > lastPulledAt` untuk activity logs).
+2. **Payload Ringan**: Jika tidak ada perubahan baru dari perangkat lain, respons dari server berukuran sangat kecil (< 1 KB) dan selesai dalam sub-detik (< 300ms).
+3. **Action Replay Reducer**:
+   Ketika klien menerima log aktivitas baru dari cloud, sistem di IndexedDB **langsung menerapkan aksi fisik ke wadah & subjek lokal**:
+   - Log `ROUTINE` -> Mengupdate `lastRoutineDate` subjek -> Tombol pakan langsung berubah hijau hari ini di layar perangkat lain.
+   - Log `HARVEST` -> Mengupdate `lastHarvestDate` subjek.
+   - Log `POPULATION_CHANGE` -> Menyetel `populationCount` ke nilai mutlak target.
+   - Log `TERMINATE` -> Mengubah status wadah menjadi `VACANT` dan subjek `isActive = false`.
 
-### C. Pembatalan Terintegrasi (Undo Rollback)
-Jika user membatalkan aksi via tombol **Undo** (baik dari notifikasi toast maupun halaman `/riwayat`):
-1. `activity-undo.ts` menghapus log dari IndexedDB dan mengembalikan status populasi atau tanggal panen ke kondisi sebelumnya.
-2. Jika record tersebut sudah terlanjur tersinkronisasi ke cloud, klien otomatis memanggil `POST /api/sync/undo` untuk menghapus baris log tersebut di Supabase PostgreSQL.
+### C. Pembatalan Terintegrasi (Append-Only Undo di Lapangan)
+1. **Tidak Ada Hard Delete pada Log**: Aksi Undo **tidak menghapus baris lama** dari tabel riwayat.
+2. **Mencatat Event Undo Baru**: Sistem menambahkan log baru bertipe `activityType: 'UNDO'` dan membatalkan status wadah/subjek ke kondisi sebelumnya.
+3. **Pemberian Tombol di Lapangan**: Tombol Undo tersedia langsung di kartu wadah lapangan (tepat di bawah tombol pakan/panen) dan di notifikasi toast, sehingga pekerja dapat membatalkan aksi salah pencet tanpa harus membuka halaman `/riwayat`.
 
 ---
 
 ## 5. PWA & Service Worker Offline Caching
 
 1. **`main/public/manifest.json`**:
-   - Mendaftarkan nama aplikasi, mode `standalone`, tema warna `#10b981`, serta icon standar `icon-192.png` dan `icon-512.png`.
-2. **`main/public/sw.js`**:
-   - Menyimpan cache static shell (`/`, `/lapangan`, `/riwayat`, `/login`, CSS, JS).
-   - Strategi `Stale-While-Revalidate` untuk aset tampilan (instan dari cache, perbarui di latar belakang jika online).
+   - Mendaftarkan nama aplikasi, mode `standalone`, `start_url: "/lapangan"`, serta icon standar `icon-192.png` dan `icon-512.png`.
+2. **`main/public/sw.js` (Cache v3)**:
+   - Menyimpan cache static shell (`/lapangan`, `/riwayat`, `/login`, CSS, JS chunks Next.js).
+   - **Auto-caching Chunks**: Semua file static bundle Next.js (`/_next/static/*`) otomatis di-cache saat online.
+   - **Offline Navigation Fallback**: Jika perangkat offline total dan aplikasi di-restart, Service Worker langsung menyajikan shell `/lapangan` dari cache lokal.
    - Seluruh endpoint API (`/api/*`) di-bypass dari cache agar ditangani secara native oleh IndexedDB.
 3. **`PwaInstallPrompt.tsx`**:
    - Dialog mengambang ramah awam yang memandu pengguna memasang aplikasi ke layar utama HP dengan jeda tunda (*24-hour snooze*) jika ditutup sementara.

@@ -34,15 +34,14 @@ flowchart TD
         subgraph Lapangan["Modul Lapangan (/lapangan)"]
             UC_Routine["4. Eksekusi Perawatan Harian (Kasih Pakan / Siram)"]
             UC_Harvest["5. Catat Panen (Berkala / Sekali Habis)"]
-            UC_Populasi["6. Update Jumlah Ternak (Tambah / Potong / Atur Ulang)"]
-            UC_UndoToast["7. Batalkan Aksi (Undo) dari Notifikasi Toast (6 Detik)"]
+            UC_Populasi["6. Update Jumlah Ternak (Set Nilai Pasti LWW)"]
+            UC_UndoField["7. Batalkan Aksi (Quick Undo) Langsung di Kartu Lapangan / Toast"]
             UC_LaporRusak["8. Lapor Kendala / Kerusakan Wadah Fisik"]
         end
 
         %% Riwayat & Audit
         subgraph Riwayat["Modul Riwayat Aktivitas (/riwayat)"]
-            UC_SearchLog["9. Cari Catatan Aktivitas & Filter Pill Cepat"]
-            UC_UndoLog["10. Batalkan Aksi (Undo) dari Baris Riwayat"]
+            UC_SearchLog["9. Cari Catatan Aktivitas & Filter Pill (Rawat, Panen, Populasi, Kendala, Undo)"]
         end
 
         %% Admin Studio
@@ -63,10 +62,9 @@ flowchart TD
     User --> UC_Routine
     User --> UC_Harvest
     User --> UC_Populasi
-    User --> UC_UndoToast
+    User --> UC_UndoField
     User --> UC_LaporRusak
     User --> UC_SearchLog
-    User --> UC_UndoLog
 
     %% Relasi Admin (Mewarisi seluruh fungsi User + fungsi khusus Admin)
     Admin --> UC_Login
