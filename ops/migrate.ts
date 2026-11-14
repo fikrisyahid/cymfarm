@@ -9,6 +9,7 @@
 
 import { resolve } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { drizzle } from "../main/node_modules/drizzle-orm/postgres-js";
 import { migrate } from "../main/node_modules/drizzle-orm/postgres-js/migrator";
 import postgres from "../main/node_modules/postgres";
@@ -21,17 +22,28 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const migrationsDir = resolve(import.meta.dir, "../main/drizzle");
+const mainDir = resolve(import.meta.dir, "../main");
+const migrationsDir = resolve(mainDir, "drizzle");
 
 console.log("==================================================================");
 console.log("🚀 [CymFarm DB Migration] Initializing PostgreSQL Migration Runner");
 console.log("==================================================================");
+
+// 1. Auto-generate SQL jika ada perubahan di schema.ts
+console.log("🔍 Checking for schema changes (Auto drizzle-kit generate)...");
+const genResult = spawnSync("bun", ["run", "db:generate"], {
+  cwd: mainDir,
+  stdio: "inherit",
+  env: process.env,
+});
+
+if (genResult.status !== 0) {
+  console.warn("⚠️ drizzle-kit generate finished with status:", genResult.status);
+}
+
 console.log(`📁 Target Migrations Directory: ${migrationsDir}`);
 
-if (!existsSync(migrationsDir)) {
-  console.warn(`⚠️ Warning: Migrations folder not found at ${migrationsDir}`);
-  console.warn(`👉 Generating migrations first via drizzle-kit generate...`);
-} else {
+if (existsSync(migrationsDir)) {
   const sqlFiles = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql"));
   console.log(`📄 Found ${sqlFiles.length} migration file(s):`);
   sqlFiles.forEach((file) => console.log(`   - ${file}`));

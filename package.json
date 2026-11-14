@@ -16,7 +16,6 @@
     "add": "bun ops/pkg.ts add",
     "remove": "bun ops/pkg.ts remove",
     "update": "bun ops/pkg.ts update",
-    "db:generate": "bun ops/sync-env.ts && bun run --cwd main db:generate",
     "db:migrate": "bun ops/sync-env.ts && bun ops/migrate.ts",
     "db:seed": "bun ops/sync-env.ts && bun ops/seed.ts",
     "db:push": "bun ops/sync-env.ts && bun run --cwd main db:push",
