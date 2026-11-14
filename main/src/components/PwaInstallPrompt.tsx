@@ -50,18 +50,15 @@ export function PwaInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-    // Untuk browser seperti iOS Safari yang tidak mentrigger beforeinstallprompt
-    const isIos =
-      typeof window !== "undefined" &&
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !(window as any).MSStream;
-
-    if (isIos && !dismissedAt) {
+    // Fallback: Jika dalam 2 detik browser tidak mentrigger beforeinstallprompt (misal non-HTTPS / iOS / browser HP lain)
+    // dan user belum pernah dismiss dalam 24 jam, TETAP TAMPILKAN prompt info instalasi!
+    const fallbackTimer = setTimeout(() => {
       setShowPrompt(true);
-    }
+    }, 1500);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      clearTimeout(fallbackTimer);
     };
   }, []);
 
