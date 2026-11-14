@@ -30,37 +30,43 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
   notifyListeners(true);
 
   try {
+    // 1. Ambil log lokal yang belum terdorong ke cloud
     const pendingLogs = await localDb.activityLogs
       .filter((l) => !l.syncedToCloud)
       .toArray();
 
+    // 2. Ambil entitas lokal yang baru/berubah (syncedToCloud: false)
     const [
-      localModules,
+      pendingModules,
       localModCats,
-      localContainers,
-      localSubjects,
+      pendingContainers,
+      pendingSubjects,
       localFeedCats,
-      localFeedPurchases,
+      pendingFeedPurchases,
     ] = await Promise.all([
-      localDb.farmModules.toArray(),
+      localDb.farmModules.filter((m) => m.syncedToCloud === false).toArray(),
       localDb.farmModuleCategories.toArray(),
-      localDb.containers.toArray(),
-      localDb.subjects.toArray(),
+      localDb.containers.filter((c) => c.syncedToCloud === false).toArray(),
+      localDb.subjects.filter((s) => s.syncedToCloud === false).toArray(),
       localDb.feedCategories.toArray(),
-      localDb.feedPurchases.toArray(),
+      localDb.feedPurchases.filter((fp) => fp.syncedToCloud === false).toArray(),
     ]);
+
+    // Format lastPulledAt jika sebelumnya sudah pernah sync
+    const lastPulledAt = lastSyncTimestamp ? new Date(lastSyncTimestamp).toISOString() : null;
 
     const res = await fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        lastPulledAt,
         pendingLogs,
-        modules: localModules,
+        modules: pendingModules,
         moduleCategories: localModCats,
-        containers: localContainers,
-        subjects: localSubjects,
+        containers: pendingContainers,
+        subjects: pendingSubjects,
         feedCategories: localFeedCats,
-        feedPurchases: localFeedPurchases,
+        feedPurchases: pendingFeedPurchases,
       }),
     });
 
@@ -79,12 +85,24 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
       activityLogs,
     } = payload.data;
 
-    // Mark pending logs as synced
+    // Tandai log & entitas yang tadi dikirim sebagai sudah syncedToCloud: true
     for (const log of pendingLogs) {
       await localDb.activityLogs.update(log.id, { syncedToCloud: true });
     }
+    for (const m of pendingModules) {
+      await localDb.farmModules.update(m.id, { syncedToCloud: true });
+    }
+    for (const c of pendingContainers) {
+      await localDb.containers.update(c.id, { syncedToCloud: true });
+    }
+    for (const s of pendingSubjects) {
+      await localDb.subjects.update(s.id, { syncedToCloud: true });
+    }
+    for (const fp of pendingFeedPurchases) {
+      await localDb.feedPurchases.update(fp.id, { syncedToCloud: true });
+    }
 
-    // Atomic update to IndexedDB
+    // Atomic update data yang ditarik dari cloud ke IndexedDB lokal
     await localDb.transaction(
       "rw",
       [
@@ -97,45 +115,52 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
         localDb.activityLogs,
       ],
       async () => {
-        // Prune deleted & upsert
-        if (Array.isArray(containers)) {
-          const cloudIds = new Set(containers.map((c: any) => c.id));
-          const localItems = await localDb.containers.toArray();
-          for (const item of localItems) {
-            if (item.syncedToCloud !== false && !cloudIds.has(item.id)) {
-              await localDb.containers.delete(item.id);
-            }
-          }
-          if (containers.length > 0) {
-            await localDb.containers.bulkPut(
-              containers.map((c: any) => ({ ...c, syncedToCloud: true }))
-            );
+        // Upsert / soft-delete modules
+        if (Array.isArray(modules) && modules.length > 0) {
+          for (const m of modules) {
+            await localDb.farmModules.put({
+              ...m,
+              updatedAt: m.updatedAt ? new Date(m.updatedAt).toISOString() : new Date().toISOString(),
+              deletedAt: m.deletedAt ? new Date(m.deletedAt).toISOString() : null,
+              syncedToCloud: true,
+            });
           }
         }
 
-        if (Array.isArray(modules)) {
-          const cloudIds = new Set(modules.map((m: any) => m.id));
-          const localItems = await localDb.farmModules.toArray();
-          for (const item of localItems) {
-            if (item.syncedToCloud !== false && !cloudIds.has(item.id)) {
-              await localDb.farmModules.delete(item.id);
-            }
-          }
-          if (modules.length > 0) {
-            await localDb.farmModules.bulkPut(
-              modules.map((m: any) => ({ ...m, syncedToCloud: true }))
-            );
+        if (moduleCategories?.length) {
+          await localDb.farmModuleCategories.bulkPut(moduleCategories);
+        }
+
+        // Upsert / soft-delete containers
+        if (Array.isArray(containers) && containers.length > 0) {
+          for (const c of containers) {
+            await localDb.containers.put({
+              ...c,
+              updatedAt: c.updatedAt ? new Date(c.updatedAt).toISOString() : new Date().toISOString(),
+              deletedAt: c.deletedAt ? new Date(c.deletedAt).toISOString() : null,
+              syncedToCloud: true,
+            });
           }
         }
 
-        if (moduleCategories?.length) await localDb.farmModuleCategories.bulkPut(moduleCategories);
-        if (subjects?.length) {
-          await localDb.subjects.bulkPut(
-            subjects.map((s: any) => ({ ...s, syncedToCloud: true }))
-          );
+        // Upsert / soft-delete subjects
+        if (Array.isArray(subjects) && subjects.length > 0) {
+          for (const s of subjects) {
+            await localDb.subjects.put({
+              ...s,
+              populationCount: Number(s.populationCount) || 0,
+              updatedAt: s.updatedAt ? new Date(s.updatedAt).toISOString() : new Date().toISOString(),
+              deletedAt: s.deletedAt ? new Date(s.deletedAt).toISOString() : null,
+              syncedToCloud: true,
+            });
+          }
         }
-        if (feedCategories?.length) await localDb.feedCategories.bulkPut(feedCategories);
-        if (feedPurchases?.length) {
+
+        if (feedCategories?.length) {
+          await localDb.feedCategories.bulkPut(feedCategories);
+        }
+
+        if (Array.isArray(feedPurchases) && feedPurchases.length > 0) {
           await localDb.feedPurchases.bulkPut(
             feedPurchases.map((fp: any) => ({
               ...fp,
@@ -145,24 +170,55 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
             }))
           );
         }
-        if (Array.isArray(activityLogs)) {
-          const cloudLogIds = new Set(activityLogs.map((l: any) => l.id));
-          const localItems = await localDb.activityLogs.toArray();
-          for (const item of localItems) {
-            // Hapus log lokal jika sudah pernah tersinkron ke cloud tapi tidak ada lagi di cloud (dihapus via Undo di device lain)
-            if (item.syncedToCloud !== false && !cloudLogIds.has(item.id)) {
-              await localDb.activityLogs.delete(item.id);
+
+        // Upsert log aktivitas baru & terapkan state aksinya (Apply Action Reducer)
+        if (Array.isArray(activityLogs) && activityLogs.length > 0) {
+          for (const log of activityLogs) {
+            await localDb.activityLogs.put({
+              ...log,
+              quantity: Number(log.quantity) || 1,
+              performedAt: new Date(log.performedAt).toISOString(),
+              syncedToCloud: true,
+            });
+
+            // Terapkan aksi riil ke subjek & wadah lokal (state synchronization)
+            const logDateStr = new Date(log.performedAt).toISOString().split("T")[0];
+
+            if (log.activityType === "ROUTINE" && log.subjectId) {
+              const currentSubj = await localDb.subjects.get(log.subjectId);
+              if (currentSubj && (!currentSubj.lastRoutineDate || currentSubj.lastRoutineDate < logDateStr)) {
+                await localDb.subjects.update(log.subjectId, {
+                  lastRoutineDate: logDateStr,
+                  updatedAt: new Date().toISOString(),
+                });
+              }
+            } else if (log.activityType === "HARVEST" && log.subjectId) {
+              const currentSubj = await localDb.subjects.get(log.subjectId);
+              if (currentSubj && (!currentSubj.lastHarvestDate || currentSubj.lastHarvestDate < logDateStr)) {
+                await localDb.subjects.update(log.subjectId, {
+                  lastHarvestDate: logDateStr,
+                  updatedAt: new Date().toISOString(),
+                });
+              }
+            } else if (log.activityType === "POPULATION_CHANGE" && log.subjectId) {
+              // Set populasi mutlak jika log lebih baru
+              const targetPop = Number(log.quantity) || 0;
+              await localDb.subjects.update(log.subjectId, {
+                populationCount: targetPop,
+                updatedAt: new Date().toISOString(),
+              });
+            } else if (log.activityType === "TERMINATE" && log.containerId) {
+              await localDb.containers.update(log.containerId, {
+                status: "VACANT",
+                updatedAt: new Date().toISOString(),
+              });
+              if (log.subjectId) {
+                await localDb.subjects.update(log.subjectId, {
+                  isActive: false,
+                  updatedAt: new Date().toISOString(),
+                });
+              }
             }
-          }
-          if (activityLogs.length > 0) {
-            await localDb.activityLogs.bulkPut(
-              activityLogs.map((l: any) => ({
-                ...l,
-                quantity: Number(l.quantity) || 1,
-                performedAt: new Date(l.performedAt).toISOString(),
-                syncedToCloud: true,
-              }))
-            );
           }
         }
       }

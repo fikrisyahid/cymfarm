@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { gt } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
+      lastPulledAt, // ISO timestamp terakhir client sync, misal: "2026-11-14T12:00:00.000Z"
       pendingLogs = [],
       modules = [],
       moduleCategories = [],
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
       feedPurchases = [],
     } = body;
 
-    // 1. Process activity logs & deletions
+    // 1. Process activity logs (Pure Append Only, No Hard Delete)
     if (Array.isArray(pendingLogs) && pendingLogs.length > 0) {
       for (const log of pendingLogs) {
         await db
@@ -36,15 +37,10 @@ export async function POST(req: Request) {
             syncedToCloud: true,
           })
           .onConflictDoNothing();
-
-        // Deletions
-        if (log.activityType === "TERMINATE" && log.containerId) {
-          await db.delete(schema.containers).where(eq(schema.containers.id, log.containerId));
-        }
       }
     }
 
-    // 2. Upsert module categories & ensure defaults if empty
+    // 2. Upsert module categories
     if (Array.isArray(moduleCategories) && moduleCategories.length > 0) {
       for (const cat of moduleCategories) {
         await db
@@ -64,7 +60,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Upsert farm modules
+    // 3. Upsert farm modules (Supports soft delete deletedAt)
     if (Array.isArray(modules) && modules.length > 0) {
       for (const m of modules) {
         await db
@@ -76,6 +72,8 @@ export async function POST(req: Request) {
             trackingMode: m.trackingMode,
             description: m.description || null,
             config: m.config,
+            updatedAt: m.updatedAt ? new Date(m.updatedAt) : new Date(),
+            deletedAt: m.deletedAt ? new Date(m.deletedAt) : null,
           })
           .onConflictDoUpdate({
             target: schema.farmModules.id,
@@ -84,13 +82,14 @@ export async function POST(req: Request) {
               category: m.category,
               description: m.description || null,
               config: m.config,
-              updatedAt: new Date(),
+              updatedAt: m.updatedAt ? new Date(m.updatedAt) : new Date(),
+              deletedAt: m.deletedAt ? new Date(m.deletedAt) : null,
             },
           });
       }
     }
 
-    // 4. Upsert containers
+    // 4. Upsert containers (Supports soft delete deletedAt)
     if (Array.isArray(containers) && containers.length > 0) {
       for (const c of containers) {
         await db
@@ -104,6 +103,8 @@ export async function POST(req: Request) {
             status: c.status,
             maintenanceNote: c.maintenanceNote || null,
             sortOrder: c.sortOrder ?? 0,
+            updatedAt: c.updatedAt ? new Date(c.updatedAt) : new Date(),
+            deletedAt: c.deletedAt ? new Date(c.deletedAt) : null,
           })
           .onConflictDoUpdate({
             target: schema.containers.id,
@@ -114,12 +115,14 @@ export async function POST(req: Request) {
               status: c.status,
               maintenanceNote: c.maintenanceNote || null,
               sortOrder: c.sortOrder ?? 0,
+              updatedAt: c.updatedAt ? new Date(c.updatedAt) : new Date(),
+              deletedAt: c.deletedAt ? new Date(c.deletedAt) : null,
             },
           });
       }
     }
 
-    // 4. Upsert subjects
+    // 5. Upsert subjects (Supports soft delete deletedAt)
     if (Array.isArray(subjects) && subjects.length > 0) {
       for (const s of subjects) {
         await db
@@ -133,6 +136,8 @@ export async function POST(req: Request) {
             isActive: s.isActive ?? true,
             lastRoutineDate: s.lastRoutineDate || null,
             lastHarvestDate: s.lastHarvestDate || null,
+            updatedAt: s.updatedAt ? new Date(s.updatedAt) : new Date(),
+            deletedAt: s.deletedAt ? new Date(s.deletedAt) : null,
           })
           .onConflictDoUpdate({
             target: schema.subjects.id,
@@ -141,12 +146,16 @@ export async function POST(req: Request) {
               isActive: s.isActive ?? true,
               lastRoutineDate: s.lastRoutineDate || null,
               lastHarvestDate: s.lastHarvestDate || null,
+              updatedAt: s.updatedAt ? new Date(s.updatedAt) : new Date(),
+              deletedAt: s.deletedAt ? new Date(s.deletedAt) : null,
             },
           });
       }
     }
 
-    // 5. Fetch clean cloud state to return
+    // 6. Incremental Pull: Jika client kirim lastPulledAt, cukup tarik data yang diupdate setelah timestamp tersebut
+    const sinceDate = lastPulledAt ? new Date(lastPulledAt) : null;
+
     const [
       cloudModules,
       cloudModCats,
@@ -156,13 +165,21 @@ export async function POST(req: Request) {
       cloudFeedPurchases,
       cloudLogs,
     ] = await Promise.all([
-      db.select().from(schema.farmModules),
+      sinceDate
+        ? db.select().from(schema.farmModules).where(gt(schema.farmModules.updatedAt, sinceDate))
+        : db.select().from(schema.farmModules),
       db.select().from(schema.farmModuleCategories),
-      db.select().from(schema.containers).orderBy(schema.containers.sortOrder),
-      db.select().from(schema.subjects),
+      sinceDate
+        ? db.select().from(schema.containers).where(gt(schema.containers.updatedAt, sinceDate)).orderBy(schema.containers.sortOrder)
+        : db.select().from(schema.containers).orderBy(schema.containers.sortOrder),
+      sinceDate
+        ? db.select().from(schema.subjects).where(gt(schema.subjects.updatedAt, sinceDate))
+        : db.select().from(schema.subjects),
       db.select().from(schema.feedCategories),
       db.select().from(schema.feedPurchases),
-      db.select().from(schema.activityLogs).limit(500),
+      sinceDate
+        ? db.select().from(schema.activityLogs).where(gt(schema.activityLogs.performedAt, sinceDate))
+        : db.select().from(schema.activityLogs).limit(500),
     ]);
 
     return NextResponse.json({
