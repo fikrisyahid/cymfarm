@@ -141,15 +141,25 @@ export async function runFarmSync(): Promise<{ success: boolean; error?: string 
             }))
           );
         }
-        if (activityLogs?.length) {
-          await localDb.activityLogs.bulkPut(
-            activityLogs.map((l: any) => ({
-              ...l,
-              quantity: Number(l.quantity) || 1,
-              performedAt: new Date(l.performedAt).toISOString(),
-              syncedToCloud: true,
-            }))
-          );
+        if (Array.isArray(activityLogs)) {
+          const cloudLogIds = new Set(activityLogs.map((l: any) => l.id));
+          const localItems = await localDb.activityLogs.toArray();
+          for (const item of localItems) {
+            // Hapus log lokal jika sudah pernah tersinkron ke cloud tapi tidak ada lagi di cloud (dihapus via Undo di device lain)
+            if (item.syncedToCloud !== false && !cloudLogIds.has(item.id)) {
+              await localDb.activityLogs.delete(item.id);
+            }
+          }
+          if (activityLogs.length > 0) {
+            await localDb.activityLogs.bulkPut(
+              activityLogs.map((l: any) => ({
+                ...l,
+                quantity: Number(l.quantity) || 1,
+                performedAt: new Date(l.performedAt).toISOString(),
+                syncedToCloud: true,
+              }))
+            );
+          }
         }
       }
     );

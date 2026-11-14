@@ -10,6 +10,7 @@ import {
 } from "@/lib/offline-db";
 import { Sparkles, Plus, Trash2, Edit2, Layers, Check, X, Box, QrCode } from "lucide-react";
 import { QrViewModal } from "./QrViewModal";
+import { runFarmSync } from "@/lib/sync-engine";
 
 export function AdminModularStudio() {
   const modules = useLiveQuery(() => localDb.farmModules.toArray(), [], []);
@@ -137,6 +138,7 @@ export function AdminModularStudio() {
     });
 
     setShowAddContainerModal(false);
+    runFarmSync().catch(() => {});
   };
 
   // Handler Buat Kategori Modul Baru
@@ -152,6 +154,7 @@ export function AdminModularStudio() {
     setModCategory(catId);
     setNewCatName("");
     setShowCatModal(false);
+    runFarmSync().catch(() => {});
   };
 
   const handleSaveModule = async (e: React.FormEvent) => {
@@ -221,6 +224,7 @@ export function AdminModularStudio() {
     }
 
     setShowModal(false);
+    runFarmSync().catch(() => {});
   };
 
   const handleDeleteModule = async (m: LocalFarmModule) => {
@@ -243,6 +247,7 @@ export function AdminModularStudio() {
       performedAt: new Date().toISOString(),
       syncedToCloud: false,
     });
+    runFarmSync().catch(() => {});
   };
 
   return (

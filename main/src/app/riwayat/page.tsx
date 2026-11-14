@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Activity, FileText, Search, X, Undo2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { undoActivityLog } from "@/lib/activity-undo";
+import { runFarmSync } from "@/lib/sync-engine";
 import type { LocalActivityLog } from "@/lib/offline-db";
 
 type FilterType = "ALL" | "ROUTINE" | "HARVEST" | "POPULATION_CHANGE" | "MAINTENANCE";
@@ -29,6 +30,8 @@ export default function RiwayatPage() {
 
     if (res.success) {
       toast.success(res.message);
+      // Trigger sync agar perubahan rollback data subjek/wadah terdorong ke cloud
+      runFarmSync().catch(() => {});
     } else {
       toast.error(res.message);
     }

@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { QrScannerModal } from "./QrScannerModal";
 import { undoActivityLog } from "@/lib/activity-undo";
+import { runFarmSync } from "@/lib/sync-engine";
 
 interface ModularWorkerViewProps {
   containers: LocalContainer[];
@@ -271,8 +272,12 @@ export function ModularWorkerView({
         label: "Batalkan (Undo)",
         onClick: async () => {
           const res = await undoActivityLog(newLogId);
-          if (res.success) toast.info(res.message);
-          else toast.error(res.message);
+          if (res.success) {
+            toast.info(res.message);
+            runFarmSync().catch(() => {});
+          } else {
+            toast.error(res.message);
+          }
         },
       },
       duration: 6000,
@@ -280,6 +285,7 @@ export function ModularWorkerView({
     setShowPopulationModal(false);
     setPopChangeAmount(1);
     setPopChangeReason("");
+    runFarmSync().catch(() => {});
   };
 
   // 2. Eksekusi Tombol Rawat Harian
@@ -310,12 +316,17 @@ export function ModularWorkerView({
         label: "Batalkan (Undo)",
         onClick: async () => {
           const res = await undoActivityLog(newLogId);
-          if (res.success) toast.info(res.message);
-          else toast.error(res.message);
+          if (res.success) {
+            toast.info(res.message);
+            runFarmSync().catch(() => {});
+          } else {
+            toast.error(res.message);
+          }
         },
       },
       duration: 6000,
     });
+    runFarmSync().catch(() => {});
   };
 
   // 3. Eksekusi Tombol Panen Hasil
@@ -352,8 +363,12 @@ export function ModularWorkerView({
           label: "Batalkan (Undo)",
           onClick: async () => {
             const res = await undoActivityLog(newLogId);
-            if (res.success) toast.info(res.message);
-            else toast.error(res.message);
+            if (res.success) {
+              toast.info(res.message);
+              runFarmSync().catch(() => {});
+            } else {
+              toast.error(res.message);
+            }
           },
         },
         duration: 6000,
@@ -390,8 +405,12 @@ export function ModularWorkerView({
           label: "Batalkan (Undo)",
           onClick: async () => {
             const res = await undoActivityLog(newLogId);
-            if (res.success) toast.info(res.message);
-            else toast.error(res.message);
+            if (res.success) {
+              toast.info(res.message);
+              runFarmSync().catch(() => {});
+            } else {
+              toast.error(res.message);
+            }
           },
         },
         duration: 6000,
@@ -399,6 +418,7 @@ export function ModularWorkerView({
     }
 
     setShowHarvestModal(false);
+    runFarmSync().catch(() => {});
   };
 
   // 3. Lapor Kerusakan / Kendala
@@ -426,6 +446,7 @@ export function ModularWorkerView({
 
     setShowMaintenanceModal(false);
     toast.warning(`Wadah ${currentContainer.name} ditandai butuh perbaikan.`);
+    runFarmSync().catch(() => {});
   };
 
   if (!currentContainer) {

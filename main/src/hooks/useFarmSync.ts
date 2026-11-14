@@ -43,12 +43,20 @@ export function useFarmSync(): FarmSyncHookReturn {
       }
     };
 
+    // 3. Periodic background sync setiap 15 detik jika tab sedang aktif
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        runFarmSync().catch(() => {});
+      }
+    }, 15000);
+
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleFocus);
 
     return () => {
       isMountedRef.current = false;
       unsubscribe();
+      clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
     };

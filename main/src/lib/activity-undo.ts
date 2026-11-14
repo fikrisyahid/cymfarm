@@ -91,13 +91,17 @@ export async function undoActivityLog(logId: string): Promise<{ success: boolean
     // 2. Remove log from local DB
     await localDb.activityLogs.delete(logId);
 
-    // 3. If it was already pushed to cloud, inform server to delete
+    // 3. If it was already pushed to cloud, inform server to delete and wait for response
     if (syncedToCloud) {
-      fetch("/api/sync/undo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logId }),
-      }).catch((err) => console.warn("Background cloud undo notice:", err));
+      try {
+        await fetch("/api/sync/undo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ logId }),
+        });
+      } catch (err) {
+        console.warn("Background cloud undo notice:", err);
+      }
     }
 
     return { success: true, message: `Aksi ${log.note || activityType} berhasil dibatalkan (Undo)!` };
